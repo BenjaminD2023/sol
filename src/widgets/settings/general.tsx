@@ -61,47 +61,6 @@ export const General = observer(() => {
 					</TouchableOpacity>
 				</View>
 				<View className="border-t border-lightBorder dark:border-darkBorder" />
-				<View className="flex-row items-center z-20">
-					<Text className="flex-1">Search Engine</Text>
-					<Dropdown
-						className="w-64"
-						value={store.ui.searchEngine}
-						onValueChange={(v) => {
-							store.ui.setSearchEngine(v as any);
-						}}
-						options={[
-							{ label: "Google", value: "google" as const },
-							{ label: "DuckDuckGo", value: "duckduckgo" as const },
-							{ label: "Bing", value: "bing" as const },
-							{ label: "Custom", value: "custom" as const },
-						]}
-					/>
-				</View>
-				{store.ui.searchEngine === "custom" && (
-					<View className="items-end z-10">
-						<View className="w-80 flex-row items-center gap-1">
-							{store.ui.searchEngine === "custom" &&
-								(isValidCustomSearchEngineUrl(store.ui.customSearchUrl) ? (
-									<View className="w-2 h-2 rounded-full bg-green-500" />
-								) : (
-									<View className="w-2 h-2 rounded-full bg-red-500" />
-								))}
-							<Input
-								bordered
-								className="w-full text-xs rounded border border-lightBorder dark:border-darkBorder px-1"
-								inputClassName="w-full"
-								readOnly={store.ui.searchEngine !== "custom"}
-								value={store.ui.customSearchUrl}
-								onChangeText={(e) => store.ui.setCustomSearchUrl(e)}
-								placeholder="https://google.com/search?q=%s"
-							/>
-						</View>
-						<Text className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 ml-1">
-							Use %s in place of the search term
-						</Text>
-					</View>
-				)}
-				<View className="border-t border-lightBorder dark:border-darkBorder" />
 				<View className="flex-row items-center z-10">
 					<View className="flex-1">
 						<Text>Emoji Skin Tone</Text>

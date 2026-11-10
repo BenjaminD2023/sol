@@ -527,7 +527,7 @@ export const createUIStore = (root: IRootStore) => {
 		get items(): Item[] {
 			const allItems = [
 				...store.apps,
-				...baseItems,
+				...baseItems.filter(item => !["start_google_meet", "create_google_meet"].includes(item.id)),
 				...store.customItems,
 				...root.scripts.scripts,
 				...(store.showInAppBrowserBookMarks ? store.bookmarks : []),
@@ -566,23 +566,6 @@ export const createUIStore = (root: IRootStore) => {
 				: [];
 
 			const finalResults: Item[] = [
-				...(CONSTANTS.LESS_VALID_URL.test(store.query)
-					? [
-							{
-								id: "open_url",
-								type: ItemType.CONFIGURATION,
-								name: "Open URL",
-								icon: "🌎",
-								callback: () => {
-									if (store.query.startsWith("https://")) {
-										Linking.openURL(store.query);
-									} else {
-										Linking.openURL(`https://${store.query}`);
-									}
-								},
-							},
-						]
-					: []),
 				...temporaryResultItems,
 				...(!store.temporaryResult && !/^define\s/i.test(store.query) && /\s/.test(store.query.trim()) ? [{
 					id: "studenthub-create", type: ItemType.CONFIGURATION,
@@ -1291,7 +1274,7 @@ export const createUIStore = (root: IRootStore) => {
 		onHotKey: async ({ id }: { id: string }) => {
 			const item = [
 				...store.apps,
-				...baseItems,
+				...baseItems.filter(item => !["start_google_meet", "create_google_meet"].includes(item.id)),
 				...store.customItems,
 				...root.scripts.scripts,
 				...(store.showInAppBrowserBookMarks ? store.bookmarks : []),

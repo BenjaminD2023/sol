@@ -55,7 +55,7 @@ export const StudentHubDashboard = observer(() => {
     <View className="flex-row items-center px-4 py-3 gap-2 border-t border-color">
       <Text className="flex-1 text-lg font-semibold text">Student Hub</Text>
       <Button title={filter === "active" ? "Show completed" : "Show active"} onPress={() => setFilter(filter === "active" ? "completed" : "active")} />
-      <Button title="Refresh" onPress={studentHub.refresh} />
+      <Button title="Refresh" onPress={() => { void studentHub.requestRefresh(); }} />
       <Button title="Open Hub" onPress={() => { void Linking.openURL("studenthub://tasks"); }} />
     </View>
     {studentHub.error ? <Text accessibilityRole="alert" className="px-4 py-2 text-red-500 text-xs">{studentHub.error}</Text> : null}

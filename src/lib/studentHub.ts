@@ -48,6 +48,14 @@ class StudentHub {
       }
     } catch { this.error = "Could not read Student Hub. Open it and try Refresh."; }
   }
+  async requestRefresh() {
+    this.refresh();
+    if (this.snapshot?.bridgeToken) {
+      try { await solNative.openStudentHubURL(hubURL("sol-refresh", { token: this.snapshot.bridgeToken })); } catch { this.error = "Could not refresh Student Hub."; }
+    } else {
+      try { await solNative.openStudentHubURL("studenthub://tasks"); } catch { this.error = "Could not open Student Hub."; }
+    }
+  }
   start() { this.refresh(); if (!this.timer) this.timer = setInterval(this.refresh, 800); }
   stop() { if (this.timer) clearInterval(this.timer); this.timer = undefined; if (this.timeout) clearTimeout(this.timeout); }
   async capture(text: string) {

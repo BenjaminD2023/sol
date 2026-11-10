@@ -19,9 +19,9 @@
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.1.364</string>
+	<string>2.1.365</string>
 	<key>CFBundleVersion</key>
-	<string>573</string>
+	<string>1000</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
 	<key>LSMinimumSystemVersion</key>
@@ -31,15 +31,7 @@
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
-		<true/>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>localhost</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<true/>
-			</dict>
-		</dict>
+		<false/>
 	</dict>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Sol needs permision to execute apple scripts</string>
@@ -66,8 +58,14 @@
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/ospfranco/sol/main/releases/appcast.xml</string>
+	<string>https://github.com/BenjaminD2023/sol/releases/latest/download/benjamin-appcast.xml</string>
 	<key>SUPublicEDKey</key>
-	<string>K+wkzEuPN5g0KIQQTxQIVrZAWfMoowpia/yAopR7sMk=</string>
+	<string>f0g/xaaRGl/QXkbZ4VyIlfQZD8hGinfUXbeG7SsmGY4=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUAutomaticallyUpdate</key>
+	<true/>
+	<key>SUSendProfileInfo</key>
+	<false/>
 </dict>
 </plist>

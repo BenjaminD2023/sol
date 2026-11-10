@@ -27,12 +27,6 @@ export const Sidebar = ({
 				title="General"
 			/>
 			<SelectableButton
-				icon={Assets.translate}
-				selected={selected === "TRANSLATE"}
-				onPress={() => setSelected("TRANSLATE")}
-				title="Translation"
-			/>
-			<SelectableButton
 				icon={Assets.shortcuts}
 				className="items-center "
 				selected={selected === "ITEMS"}
