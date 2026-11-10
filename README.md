@@ -161,5 +161,7 @@ Command-Space, Option-Space, and Control-Space preferences remain compatible.
 **Settings → Global Shortcuts** also lets you change or clear individual action
 shortcuts. Duplicate combinations (including different modifier orders) are
 rejected. Shortcut recording works within Sol without Accessibility permission.
+If the launcher uses one of the action defaults, change the launcher before
+restoring action defaults. Invalid or duplicate imported assignments are cleared.
 The system may reserve a combination; disable a conflicting macOS shortcut in
 System Settings → Keyboard → Keyboard Shortcuts before assigning it to Sol.

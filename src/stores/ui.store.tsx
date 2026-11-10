@@ -11,12 +11,15 @@ import { parseDictionaryQuery } from "lib/dictionary";
 import type { EmojiSkinTone } from "lib/emojiSkinTones";
 import { normalizeEmojiSkinTone } from "lib/emojiSkinTones";
 import { solNative } from "lib/SolNative";
+import { defaultShortcuts, normalizeShortcut } from "lib/shortcuts";
 import {
-	defaultShortcuts,
-	normalizeShortcut,
-	normalizeShortcutMap,
-} from "lib/shortcuts";
-import { canonicalShortcut, launcherShortcut, shortcutError } from "lib/shortcutValidation";
+	canonicalShortcut,
+	launcherShortcut,
+	shortcutError,
+	persistedLauncherShortcut,
+	hasShortcutConflict,
+	sanitizeShortcutMap,
+} from "lib/shortcutValidation";
 import MiniSearch from "minisearch";
 import {
 	autorun,
@@ -239,11 +242,10 @@ export const createUIStore = (root: IRootStore) => {
 	};
 
 	const applyShortcutNormalization = (shortcuts?: Record<string, string>) => {
-		if (!shortcuts) {
-			return defaultShortcuts;
-		}
-
-		return normalizeShortcutMap(shortcuts);
+		return sanitizeShortcutMap(
+			shortcuts ?? defaultShortcuts,
+			store.globalShortcut,
+		);
 	};
 
 	const hydrate = async () => {
@@ -298,7 +300,7 @@ export const createUIStore = (root: IRootStore) => {
 						src.secondTranslationLanguage ?? "de";
 					store.thirdTranslationLanguage = src.thirdTranslationLanguage ?? null;
 					store.customItems = src.customItems ?? [];
-					store.globalShortcut = src.globalShortcut ?? "option";
+					store.globalShortcut = persistedLauncherShortcut(src.globalShortcut);
 					store.showWindowOn = src.showWindowOn ?? "screenWithFrontmost";
 					store.calendarEnabled = src.calendarEnabled ?? true;
 					store.showAllDayEvents = src.showAllDayEvents ?? true;
@@ -376,7 +378,9 @@ export const createUIStore = (root: IRootStore) => {
 				if (jsonConfig.thirdTranslationLanguage !== undefined)
 					store.thirdTranslationLanguage = jsonConfig.thirdTranslationLanguage;
 				if (jsonConfig.globalShortcut !== undefined)
-					store.globalShortcut = jsonConfig.globalShortcut;
+					store.globalShortcut = persistedLauncherShortcut(
+						jsonConfig.globalShortcut,
+					);
 				if (jsonConfig.showWindowOn !== undefined)
 					store.showWindowOn = jsonConfig.showWindowOn;
 				if (jsonConfig.calendarEnabled !== undefined)
@@ -440,7 +444,7 @@ export const createUIStore = (root: IRootStore) => {
 		searchEngine: "google" as SearchEngine,
 		emojiSkinTone: normalizeEmojiSkinTone(undefined),
 		customSearchUrl: "https://google.com/search?q=%s" as string,
-		globalShortcut: "option" as string,
+		globalShortcut: "option+space" as string,
 		scratchpadShortcut: "command" as "command" | "option" | "none",
 		clipboardManagerShortcut: "shift" as "shift" | "option" | "none",
 		showWindowOn: "screenWithFrontmost" as
@@ -693,8 +697,11 @@ export const createUIStore = (root: IRootStore) => {
 		setGlobalShortcut: (key: string) => {
 			const shortcut = launcherShortcut(key);
 			const error = shortcutError(shortcut);
-			if (error || Object.values(store.shortcuts).some(value => canonicalShortcut(value) === shortcut)) {
-				solNative.showToast(error ?? "Shortcut already assigned to another action", "error");
+			if (error || hasShortcutConflict(store.shortcuts, shortcut)) {
+				solNative.showToast(
+					error ?? "Shortcut already assigned to another action",
+					"error",
+				);
 				return false;
 			}
 			solNative.setGlobalShortcut(shortcut);
@@ -1321,29 +1328,41 @@ export const createUIStore = (root: IRootStore) => {
 			const normalizedShortcut = canonicalShortcut(shortcut);
 			if (normalizedShortcut && shortcutError(normalizedShortcut)) {
 				solNative.showToast(shortcutError(normalizedShortcut)!, "error");
-				return;
+				return false;
 			}
-			if (normalizedShortcut && normalizedShortcut === launcherShortcut(store.globalShortcut)) {
+			if (
+				normalizedShortcut &&
+				normalizedShortcut === launcherShortcut(store.globalShortcut)
+			) {
 				solNative.showToast("Shortcut is assigned to opening Sol", "error");
-				return;
+				return false;
 			}
 
 			// Check for duplicate shortcut
 			if (normalizedShortcut !== "") {
 				const isDuplicate = Object.entries(store.shortcuts).some(
-					([key, value]) => canonicalShortcut(value) === normalizedShortcut && key !== id,
+					([key, value]) =>
+						canonicalShortcut(value) === normalizedShortcut && key !== id,
 				);
 				if (isDuplicate) {
 					solNative.showToast("Shortcut already exists", "error", 4);
-					return;
+					return false;
 				}
 			}
 
 			store.shortcuts[id] = normalizedShortcut;
 			solNative.updateHotkeys(toJS(store.shortcuts));
+			return true;
 		},
 
 		restoreDefaultShorcuts() {
+			if (hasShortcutConflict(defaultShortcuts, store.globalShortcut)) {
+				solNative.showToast(
+					"Change the launcher shortcut before restoring action defaults",
+					"error",
+				);
+				return;
+			}
 			store.shortcuts = { ...defaultShortcuts };
 			solNative.updateHotkeys(defaultShortcuts);
 		},
@@ -1378,6 +1397,9 @@ export const createUIStore = (root: IRootStore) => {
 			store.showKeyboardRecorder = false;
 			store.keyboardRecorderSelectedItem = null;
 			store.shortcutSearchMode = false;
+			root.keystroke.commandPressed = false;
+			root.keystroke.shiftPressed = false;
+			root.keystroke.controlPressed = false;
 		},
 		setShowKeyboardRecorderForItem: (show: boolean, itemId: string) => {
 			store.showKeyboardRecorder = show;
@@ -1400,7 +1422,8 @@ export const createUIStore = (root: IRootStore) => {
 			const normalizedShortcut = normalizeShortcut(shortcut.join("+"));
 
 			if (store.keyboardRecorderSelectedItem === "__launcher__") {
-				if (store.setGlobalShortcut(normalizedShortcut)) store.closeKeyboardRecorder();
+				if (store.setGlobalShortcut(normalizedShortcut))
+					store.closeKeyboardRecorder();
 				return;
 			}
 
@@ -1409,25 +1432,16 @@ export const createUIStore = (root: IRootStore) => {
 				store.shortcutSearchFilter = normalizedShortcut;
 				setTimeout(() => {
 					runInAction(() => {
-						store.showKeyboardRecorder = false;
-						store.shortcutSearchMode = false;
+						store.closeKeyboardRecorder();
 					});
 				}, 500);
 				return;
 			}
 
-			setTimeout(() => {
-				runInAction(() => {
-					store.showKeyboardRecorder = false;
-				});
-			}, 2000);
-
 			const itemId = store.keyboardRecorderSelectedItem;
-			store.keyboardRecorderSelectedItem = null;
-			if (!itemId) {
-				return;
+			if (itemId && store.setShortcut(itemId, normalizedShortcut)) {
+				store.closeKeyboardRecorder();
 			}
-			store.setShortcut(itemId, normalizedShortcut);
 		},
 		confirm: async (title: string, callback: () => unknown) => {
 			store.confirmDialogShown = true;
