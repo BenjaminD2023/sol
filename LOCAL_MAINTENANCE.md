@@ -50,3 +50,20 @@ conversions contact Frankfurter with the currency pair only. Telemetry,
 translation, remote favicons, flight lookups, and automatic browser-search
 fallback are disabled. Sparkle update checks are the separate maintenance
 connection explicitly requested for this fork.
+
+## Verification status (2026-11-11)
+
+Installed signed build 1002. TypeScript, 43 Bun tests, 3 terminal CLI tests,
+native dictionary/shortcut/application-quit/file-search harnesses and Release
+build/signature checks passed. Student Hub's 28 targeted tests and disposable
+live create/edit/reschedule/complete/reopen/delete round trip passed; all 140
+original tasks were preserved. The 25 imported countdowns include 5 archived
+items; five truncated screenshot titles are stored as shown with notes.
+
+On-screen verification is pending because the Mac was locked. The first update
+archive is prepared at `~/Library/Caches/Sol-update-staging/1002/Sol-1002.zip`.
+Sparkle's signing tool waited for login Keychain access, so no update feed or
+GitHub Release has been published yet. After unlocking the Mac, complete the
+on-screen checks and run `scripts/local/publish-update.sh`; approve the signing
+tool's access to the newly generated `benjamin-sol` Sparkle key if macOS asks.
+The private key must remain in Keychain and must never be printed or committed.
