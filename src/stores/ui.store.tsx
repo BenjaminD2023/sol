@@ -153,6 +153,9 @@ type RankedItem = Item & {
 export const createUIStore = (root: IRootStore) => {
 	// Guards against spurious writes during hydrate/reload
 	let isHydrating = false;
+	let fileSearchRequestID = 0;
+	let fileSearchTimer: ReturnType<typeof setTimeout> | undefined;
+	let fileSearchDisposer: IReactionDisposer | undefined;
 
 	const getSelectionCount = (item: Pick<Item, "id" | "name">) => {
 		const countById = store.frequencies[item.id];
@@ -447,6 +450,7 @@ export const createUIStore = (root: IRootStore) => {
 		editingCustomItem: null as Item | null,
 		apps: [] as Item[],
 		isLoading: false,
+		isFileSearching: false,
 		isIndexing: false,
 		indexedFileResults: [] as Item[],
 		translationResults: [] as string[],
@@ -493,27 +497,56 @@ export const createUIStore = (root: IRootStore) => {
 		get files(): Item[] {
 			return store.indexedFileResults;
 		},
+		invalidateFileSearch: () => {
+			fileSearchRequestID += 1;
+			if (fileSearchTimer !== undefined) clearTimeout(fileSearchTimer);
+			solNative.cancelFileSearch();
+			store.indexedFileResults = [];
+			store.isFileSearching = false;
+		},
 		runFileSearch: async (query: string) => {
-			if (!query || store.focusedWidget !== Widget.FILE_SEARCH) {
-				runInAction(() => {
-					store.indexedFileResults = [];
-					store.isLoading = false;
-				});
+			const widget = store.focusedWidget;
+			if (
+				!query.trim() ||
+				!store.isVisible ||
+				(widget !== Widget.FILE_SEARCH && widget !== Widget.SEARCH) ||
+				(widget === Widget.SEARCH && query.trim().length < 2)
+			)
 				return;
+			const requestID = ++fileSearchRequestID;
+			store.isFileSearching = true;
+			try {
+				const results = await solNative.searchFiles(
+					query,
+					toJS(store.searchFolders),
+				);
+				if (
+					requestID !== fileSearchRequestID ||
+					query !== store.query ||
+					widget !== store.focusedWidget ||
+					!store.isVisible
+				)
+					return;
+				runInAction(() => {
+					store.indexedFileResults = results.map((file) => ({
+						id: `file:${file.path}`,
+						type: ItemType.FILE,
+						name: file.name,
+						url: file.path,
+						isFolder: file.isFolder,
+					}));
+				});
+			} catch (_) {
+				if (requestID === fileSearchRequestID) {
+					solNative.showToast("Could not search local files", "error");
+				}
+			} finally {
+				if (requestID === fileSearchRequestID) {
+					runInAction(() => {
+						store.isFileSearching = false;
+					});
+				}
 			}
-			runInAction(() => {
-				store.isLoading = true;
-			});
-			const results = await solNative.searchFilesIndexed(query);
-			runInAction(() => {
-				store.indexedFileResults = results.map((f) => ({
-					id: f.path,
-					type: ItemType.FILE,
-					name: f.name,
-					url: f.path,
-				}));
-				store.isLoading = false;
-			});
 		},
 		get items(): Item[] {
 			const allItems = [
@@ -576,6 +609,7 @@ export const createUIStore = (root: IRootStore) => {
 					: []),
 				...temporaryResultItems,
 				...results,
+				...store.indexedFileResults.slice(0, 10),
 			];
 
 			return finalResults;
@@ -914,6 +948,8 @@ export const createUIStore = (root: IRootStore) => {
 			store.historyPointer = 0;
 		},
 		cleanUp: () => {
+			fileSearchDisposer?.();
+			store.invalidateFileSearch();
 			onShowListener?.remove();
 			onHideListener?.remove();
 			onFileSearchListener?.remove();
@@ -1318,6 +1354,22 @@ export const createUIStore = (root: IRootStore) => {
 		},
 		reloadJsonConfig,
 	});
+
+	fileSearchDisposer = reaction(
+		() => [
+			store.query,
+			store.focusedWidget,
+			store.isVisible,
+			store.searchFolders.join("\0"),
+		],
+		() => {
+			store.invalidateFileSearch();
+			const query = store.query;
+			fileSearchTimer = setTimeout(() => {
+				void store.runFileSearch(query);
+			}, 150);
+		},
+	);
 
 	bookmarksDisposer = reaction(
 		() => [store.showInAppBrowserBookMarks],

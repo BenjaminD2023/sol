@@ -61,8 +61,8 @@ class FileSearchIndexer {
       let isRenamed = flag & FSEventStreamEventFlags(kFSEventStreamEventFlagItemRenamed) != 0
 
       let name = (path as NSString).lastPathComponent
-      // Skip hidden files and folders (those starting with a dot)
-      if name.hasPrefix(".") {
+      // Apply the same visibility rules to incremental updates and full scans.
+      if !FileSearchSupport.isSearchablePath(path) {
         continue
       }
 
@@ -73,6 +73,12 @@ class FileSearchIndexer {
         fileManager.fileExists(atPath: path, isDirectory: &isDir)
         let parent = (path as NSString).deletingLastPathComponent
         index.upsertFile(path: path, name: name, isFolder: isDir.boolValue, parentPath: parent)
+        let isCreated = flag & FSEventStreamEventFlags(kFSEventStreamEventFlagItemCreated) != 0
+        if isDir.boolValue && (isCreated || isRenamed),
+          let values = try? URL(fileURLWithPath: path).resourceValues(forKeys: [.isPackageKey, .isSymbolicLinkKey]),
+          values.isPackage != true, values.isSymbolicLink != true {
+          index.indexPath(path as NSString)
+        }
       }
     }
   }

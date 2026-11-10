@@ -10,7 +10,8 @@ export const LoadingBar = observer(() => {
 	const animatedBorderRef = useRef(new Animated.Value(0));
 	const accentColor = solNative.accentColor;
 
-	const isActive = store.ui.isLoading || store.ui.isIndexing;
+	const isActive =
+		store.ui.isLoading || store.ui.isFileSearching || store.ui.isIndexing;
 
 	useEffect(() => {
 		Animated.timing(animatedBorderRef.current, {

@@ -184,16 +184,35 @@ const ItemRow = observer(({ item, index }: { item: Item; index: number }) => {
 
 				{(Platform.OS === "macos" || Platform.OS === "ios") &&
 					!!item.IconComponent && <item.IconComponent />}
-				<Text
-					numberOfLines={1}
-					className={clsx("ml-3 text max-w-xl", {
-						"text-white": isActive,
-					})}
-				>
-					{displayName}
-				</Text>
-
-				<View className="flex-1" />
+				{item.type === ItemType.FILE ? (
+					<View className="ml-3 flex-1 mr-3">
+						<Text
+							numberOfLines={1}
+							className={clsx({ "text-white": isActive })}
+						>
+							{displayName}
+						</Text>
+						<Text
+							numberOfLines={1}
+							ellipsizeMode="middle"
+							className={clsx("text-xs darker-text", {
+								"text-white": isActive,
+							})}
+						>
+							{item.url?.substring(0, item.url.lastIndexOf("/")) || "/"}
+						</Text>
+					</View>
+				) : (
+					<>
+						<Text
+							numberOfLines={1}
+							className={clsx("ml-3 text max-w-xl", { "text-white": isActive })}
+						>
+							{displayName}
+						</Text>
+						<View className="flex-1" />
+					</>
+				)}
 
 				{item.type === ItemType.BOOKMARK && (
 					<Text
@@ -234,13 +253,11 @@ const ItemRow = observer(({ item, index }: { item: Item; index: number }) => {
 					</Text>
 				)}
 
-				{item.type === ItemType.FILE && !!item.url && (
+				{item.type === ItemType.FILE && (
 					<Text
-						className={clsx("darker-text text-xs", {
-							"text-white dark:text-white": isActive,
-						})}
+						className={clsx("darker-text text-xs", { "text-white": isActive })}
 					>
-						{item.url.slice(0, 45)}
+						{item.isFolder ? "Folder" : "File"}
 					</Text>
 				)}
 
@@ -325,7 +342,11 @@ export const SearchWidget: FC = observer(() => {
 								<View className="mx-2" />
 							</>
 						)}
-						<Text className="text-xs darker-text mr-1">Translate</Text>
+						<Text className="text-xs darker-text mr-1">
+							{store.ui.currentItem?.type === ItemType.FILE
+								? "Reveal in Finder"
+								: "Translate"}
+						</Text>
 						<Key symbol={"⇧"} />
 						<Key symbol={"⏎"} />
 						{!items.length && (

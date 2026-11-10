@@ -3,10 +3,20 @@ import clsx from "clsx";
 import { Dropdown } from "components/Dropdown";
 import { Input } from "components/Input";
 import { MySwitch } from "components/MySwitch";
-import { emojiSkinToneOptions, normalizeEmojiSkinTone } from "lib/emojiSkinTones";
+import {
+	emojiSkinToneOptions,
+	normalizeEmojiSkinTone,
+} from "lib/emojiSkinTones";
 import { solNative } from "lib/SolNative";
 import { observer } from "mobx-react-lite";
-import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import {
+	Image,
+	Linking,
+	ScrollView,
+	Text,
+	TouchableOpacity,
+	View,
+} from "react-native";
 import { useStore } from "store";
 
 const emojiSkinToneDropdownOptions = emojiSkinToneOptions.map(
@@ -123,8 +133,22 @@ export const General = observer(() => {
 			<View className="z-10 p-3 gap-1 subBg rounded-lg border border-lightBorder dark:border-darkBorder">
 				<Text className="">File Search Paths</Text>
 				<Text className="text-xxs text-neutral-500 dark:text-neutral-400">
-					Add folders for the Search Files functionality.
+					Spotlight searches your home folder and these folders. The local
+					fallback index covers only the folders below.
 				</Text>
+				{!store.ui.hasFullDiskAccess && (
+					<TouchableOpacity
+						onPress={() => {
+							void Linking.openURL(
+								"x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles",
+							);
+						}}
+					>
+						<Text className="text-xs text-blue-500 mt-1">
+							Protected files missing? Open Full Disk Access settings
+						</Text>
+					</TouchableOpacity>
+				)}
 				<View className="mt-2">
 					{store.ui.searchFolders.map((folder, idx) => {
 						return (

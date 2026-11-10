@@ -129,12 +129,8 @@ export const createKeystrokeStore = (root: IRootStore) => {
 							const file = root.ui.files[root.ui.selectedIndex];
 							if (file?.url) {
 								if (shift) {
-									const filePath = file.url;
-									const directoryPath = filePath.substring(
-										0,
-										filePath.lastIndexOf("/"),
-									);
-									solNative.openFinderAt(directoryPath);
+									solNative.revealFile(file.url);
+									solNative.hideWindow();
 								} else {
 									solNative.openFile(file.url);
 									solNative.hideWindow();
@@ -319,6 +315,16 @@ export const createKeystrokeStore = (root: IRootStore) => {
 							//   \___\_\\____/|______|_|  \_\ |_|    |______|_| \_|  |_|  |______|_|  \_\______|_____/
 
 							root.ui.addToHistory(root.ui.query);
+
+							if (
+								shift &&
+								root.ui.currentItem?.type === ItemType.FILE &&
+								root.ui.currentItem.url
+							) {
+								solNative.revealFile(root.ui.currentItem.url);
+								solNative.hideWindow();
+								return;
+							}
 
 							if (shift) {
 								root.ui.translateQuery();
