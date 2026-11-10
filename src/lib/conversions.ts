@@ -248,7 +248,9 @@ export async function fetchCurrencyConversion(
 			rate = { date: body.date, rate: body.rate, fetchedAt: Date.now() };
 			rateCache.set(pair, rate);
 		} catch (error) {
-			if (signal?.aborted || !rate) throw error;
+			// A request deadline can abort the fetch while a cached rate is still
+			// useful. The store's request identity check suppresses cancelled queries.
+			if (!rate) throw error;
 			stale = true;
 		}
 	}

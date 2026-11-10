@@ -136,3 +136,37 @@ test("currency network failure and cancellation reject cleanly", async () => {
 		globalThis.fetch = originalFetch;
 	}
 });
+
+test("expired cached rates remain usable after a request deadline", async () => {
+	const originalFetch = globalThis.fetch;
+	const originalNow = Date.now;
+	let now = originalNow();
+	Date.now = () => now;
+	globalThis.fetch = async () => ({
+		ok: true,
+		json: async () => ({
+			base: "CHF",
+			quote: "EUR",
+			date: "2026-11-10",
+			rate: 1.1,
+		}),
+	});
+	try {
+		await fetchCurrencyConversion({ amount: 10, from: "CHF", to: "EUR" });
+		now += 7 * 60 * 60 * 1000;
+		globalThis.fetch = async () => {
+			throw new Error("request timed out");
+		};
+		const controller = new AbortController();
+		controller.abort();
+		const result = await fetchCurrencyConversion(
+			{ amount: 10, from: "CHF", to: "EUR" },
+			controller.signal,
+		);
+		assert.equal(result.right.value, "11");
+		assert.match(result.footer, /cached, offline/);
+	} finally {
+		Date.now = originalNow;
+		globalThis.fetch = originalFetch;
+	}
+});
