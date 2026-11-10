@@ -10,6 +10,7 @@ import {
 	normalizeShortcut,
 	normalizeShortcutMap,
 } from "lib/shortcuts";
+import { canonicalShortcut, launcherShortcut, shortcutError } from "lib/shortcutValidation";
 import { googleTranslate } from "lib/translator";
 import MiniSearch from "minisearch";
 import {
@@ -326,7 +327,7 @@ export const createUIStore = (root: IRootStore) => {
 				});
 
 				solNative.setLaunchAtLogin(src.launchAtLogin ?? true);
-				solNative.setGlobalShortcut(src.globalShortcut);
+				solNative.setGlobalShortcut(store.globalShortcut);
 				solNative.setShowWindowOn(src.showWindowOn ?? "screenWithFrontmost");
 				solNative.setMediaKeyForwardingEnabled(store.mediaKeyForwardingEnabled);
 				solNative.setHyperKeyEnabled(store.hyperKeyEnabled);
@@ -432,7 +433,7 @@ export const createUIStore = (root: IRootStore) => {
 		searchEngine: "google" as SearchEngine,
 		emojiSkinTone: normalizeEmojiSkinTone(undefined),
 		customSearchUrl: "https://google.com/search?q=%s" as string,
-		globalShortcut: "option" as "command" | "option" | "control",
+		globalShortcut: "option" as string,
 		scratchpadShortcut: "command" as "command" | "option" | "none",
 		clipboardManagerShortcut: "shift" as "shift" | "option" | "none",
 		showWindowOn: "screenWithFrontmost" as
@@ -714,9 +715,16 @@ export const createUIStore = (root: IRootStore) => {
 		setOnboardingStep: (step: OnboardingStep) => {
 			store.onboardingStep = step;
 		},
-		setGlobalShortcut: (key: "command" | "option" | "control") => {
-			solNative.setGlobalShortcut(key);
-			store.globalShortcut = key;
+		setGlobalShortcut: (key: string) => {
+			const shortcut = launcherShortcut(key);
+			const error = shortcutError(shortcut);
+			if (error || Object.values(store.shortcuts).some(value => canonicalShortcut(value) === shortcut)) {
+				solNative.showToast(error ?? "Shortcut already assigned to another action", "error");
+				return false;
+			}
+			solNative.setGlobalShortcut(shortcut);
+			store.globalShortcut = shortcut;
+			return true;
 		},
 		setShowWindowOn: (on: "screenWithFrontmost" | "screenWithCursor") => {
 			solNative.setShowWindowOn(on);
@@ -1203,12 +1211,20 @@ export const createUIStore = (root: IRootStore) => {
 		},
 
 		setShortcut(id: string, shortcut: string) {
-			const normalizedShortcut = normalizeShortcut(shortcut);
+			const normalizedShortcut = canonicalShortcut(shortcut);
+			if (normalizedShortcut && shortcutError(normalizedShortcut)) {
+				solNative.showToast(shortcutError(normalizedShortcut)!, "error");
+				return;
+			}
+			if (normalizedShortcut && normalizedShortcut === launcherShortcut(store.globalShortcut)) {
+				solNative.showToast("Shortcut is assigned to opening Sol", "error");
+				return;
+			}
 
 			// Check for duplicate shortcut
 			if (normalizedShortcut !== "") {
 				const isDuplicate = Object.entries(store.shortcuts).some(
-					([key, value]) => value === normalizedShortcut && key !== id,
+					([key, value]) => canonicalShortcut(value) === normalizedShortcut && key !== id,
 				);
 				if (isDuplicate) {
 					solNative.showToast("Shortcut already exists", "error", 4);
@@ -1221,7 +1237,7 @@ export const createUIStore = (root: IRootStore) => {
 		},
 
 		restoreDefaultShorcuts() {
-			store.shortcuts = defaultShortcuts;
+			store.shortcuts = { ...defaultShortcuts };
 			solNative.updateHotkeys(defaultShortcuts);
 		},
 
@@ -1275,6 +1291,11 @@ export const createUIStore = (root: IRootStore) => {
 		},
 		setShortcutFromUI: (shortcut: string[]) => {
 			const normalizedShortcut = normalizeShortcut(shortcut.join("+"));
+
+			if (store.keyboardRecorderSelectedItem === "__launcher__") {
+				if (store.setGlobalShortcut(normalizedShortcut)) store.closeKeyboardRecorder();
+				return;
+			}
 
 			// Check if we're in shortcut search mode
 			if (store.shortcutSearchMode) {

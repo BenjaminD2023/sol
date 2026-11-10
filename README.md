@@ -114,3 +114,16 @@ bun macos
 ## License
 
 MIT License
+
+### Keyboard shortcuts
+
+In **Settings → General**, click **Change…** beside Global Shortcut and press a
+combination with Command, Option, or Control plus a letter, number, Space,
+Return, or arrow key. Escape cancels. Reset restores Option-Space. Existing
+Command-Space, Option-Space, and Control-Space preferences remain compatible.
+
+**Settings → Global Shortcuts** also lets you change or clear individual action
+shortcuts. Duplicate combinations (including different modifier orders) are
+rejected. Shortcut recording works within Sol without Accessibility permission.
+The system may reserve a combination; disable a conflicting macOS shortcut in
+System Settings → Keyboard → Keyboard Shortcuts before assigning it to Sol.

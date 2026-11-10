@@ -4,6 +4,8 @@ import { Dropdown } from "components/Dropdown";
 import { Input } from "components/Input";
 import { MySwitch } from "components/MySwitch";
 import { emojiSkinToneOptions, normalizeEmojiSkinTone } from "lib/emojiSkinTones";
+import { renderToKeys } from "lib/shortcuts";
+import { launcherShortcut } from "lib/shortcutValidation";
 import { solNative } from "lib/SolNative";
 import { observer } from "mobx-react-lite";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
@@ -47,18 +49,16 @@ export const General = observer(() => {
 			<View className="z-20 p-3 subBg gap-3 rounded-lg border border-lightBorder dark:border-darkBorder">
 				<View className="flex-row items-center z-30">
 					<Text className="flex-1 text-sm">Global Shortcut</Text>
-					<Dropdown
-						className="w-64"
-						value={store.ui.globalShortcut}
-						onValueChange={(v) => {
-							store.ui.setGlobalShortcut(v as any);
-						}}
-						options={[
-							{ label: "⌘ + ␣", value: "command" as const },
-							{ label: "⌥ + ␣", value: "option" as const },
-							{ label: "⌃ + ␣", value: "control" as const },
-						]}
-					/>
+					<TouchableOpacity
+						accessibilityLabel="Record launcher shortcut"
+						onPress={() => store.ui.setShowKeyboardRecorderForItem(true, "__launcher__")}
+						className="flex-row items-center gap-1 p-2 rounded border border-lightBorder dark:border-darkBorder">
+						{renderToKeys(launcherShortcut(store.ui.globalShortcut))}
+						<Text className="text-xs text-accent ml-2">Change…</Text>
+					</TouchableOpacity>
+					<TouchableOpacity onPress={() => store.ui.setGlobalShortcut("option+space")}>
+						<Text className="text-xs text-accent ml-3">Reset</Text>
+					</TouchableOpacity>
 				</View>
 				<View className="border-t border-lightBorder dark:border-darkBorder" />
 				<View className="flex-row items-center z-20">

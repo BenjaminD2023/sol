@@ -22,7 +22,7 @@ class SolNative extends NativeEventEmitter {
 		| null
 		| undefined
 	>;
-	setGlobalShortcut: (key: "command" | "option" | "control") => void;
+	setGlobalShortcut: (key: string) => void;
 	getCalendarAuthorizationStatus: typeof global.__SolProxy.getCalendarAuthorizationStatus;
 	requestCalendarAccess: () => Promise<void>;
 	requestAccessibilityAccess: () => Promise<void>;

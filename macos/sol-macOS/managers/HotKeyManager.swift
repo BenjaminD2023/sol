@@ -14,6 +14,7 @@ final class HotKeyManager {
   private var shiftPressed = false
   private var controlPressed = false
   private var f18Down = false
+  private var recordingShortcut = false
 
   public let settingsHotKey = HotKey(key: .comma, modifiers: [.command])
   public var mainHotKey = HotKey(key: .space, modifiers: [.command])
@@ -32,6 +33,7 @@ final class HotKeyManager {
     mainHotKey.keyUpHandler = PanelManager.shared.toggle
 
     NSEvent.addLocalMonitorForEvents(matching: .keyDown) {
+      if self.recordingShortcut { return $0 }
       // 36 enter
       // 123 arrow left
       // 124 arrow right
@@ -173,6 +175,50 @@ final class HotKeyManager {
     if let src = runLoopSource {
       CFRunLoopRemoveSource(CFRunLoopGetCurrent(), src, .commonModes)
     }
+  }
+
+  // Keep the existing key registered until a valid replacement has been parsed.
+  func setLauncherShortcut(_ value: String) {
+    let shortcut = ["command", "option", "control"].contains(value) ? value + "+space" : value
+    guard let (key, modifiers) = parseShortcut(shortcut),
+      !modifiers.intersection([.command, .option, .control]).isEmpty
+    else { return }
+    mainHotKey.isPaused = true
+    mainHotKey = HotKey(key: key, modifiers: modifiers, keyUpHandler: PanelManager.shared.toggle)
+  }
+
+  func pauseForRecording(_ paused: Bool) {
+    recordingShortcut = paused
+    mainHotKey.isPaused = paused
+    settingsHotKey.isPaused = paused
+    hotkeys.forEach { $0.isPaused = paused }
+  }
+
+  private func parseShortcut(_ value: String) -> (Key, NSEvent.ModifierFlags)? {
+    var modifiers: NSEvent.ModifierFlags = []
+    var key: Key?
+    for component in value.lowercased().split(separator: "+").map({ $0.trimmingCharacters(in: .whitespaces) }) {
+      switch component {
+      case "command", "cmd", "⌘": modifiers.insert(.command)
+      case "control", "⌃": modifiers.insert(.control)
+      case "option", "⌥": modifiers.insert(.option)
+      case "shift", "⇧": modifiers.insert(.shift)
+      default:
+        guard key == nil else { return nil }
+        switch component {
+        case "space": key = .space
+        case "return": key = .return
+        case "up": key = .upArrow
+        case "down": key = .downArrow
+        case "left": key = .leftArrow
+        case "right": key = .rightArrow
+        default: key = Key(string: component)
+        }
+        if key == nil { return nil }
+      }
+    }
+    guard let key = key else { return nil }
+    return (key, modifiers)
   }
 
   func updateHotkeys(hotkeyMap: [String: String]) {
