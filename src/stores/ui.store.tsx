@@ -1412,10 +1412,10 @@ export const createUIStore = (root: IRootStore) => {
 	onShowListener = solNative.addListener("onShow", store.onShow);
 	onHideListener = solNative.addListener("onHide", store.onHide);
 	onHotkeyListener = solNative.addListener("hotkey", store.onHotKey);
-	// onAppsChangedListener = solNative.addListener(
-	// 	"applicationsChanged",
-	// 	store.applicationsChanged,
-	// );
+	onAppsChangedListener = solNative.addListener(
+		"applicationsChanged",
+		store.applicationsChanged,
+	);
 
 	return store;
 };
