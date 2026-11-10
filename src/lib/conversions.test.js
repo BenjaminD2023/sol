@@ -23,6 +23,8 @@ test("offline conversions accept aliases, signs, exponents and symbols", () => {
 	assert.equal(converted("+.5 L to ml"), 500);
 	assert.equal(converted("1 m² in cm^2"), 10000);
 	assert.equal(converted("36 km/h to m/s"), 10);
+	assert.equal(converted("36 kilometres per hour to meters per second"), 10);
+	assert.equal(converted("1e308 km to km"), 1e308);
 	assert.equal(converted("1 MB to b"), 8388608);
 	assert.equal(converted("1 MW to W"), 1000000);
 	assert.equal(converted("1 mW to W"), 0.001);

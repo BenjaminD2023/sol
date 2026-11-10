@@ -56,6 +56,10 @@ for (const [name, unit] of Object.entries({
 	kph: "km/h",
 	kmh: "km/h",
 	knots: "knot",
+	"meter per second": "m/s",
+	"meters per second": "m/s",
+	"kilometer per hour": "km/h",
+	"kilometers per hour": "km/h",
 	"fl oz": "fl-oz",
 	"fluid ounce": "fl-oz",
 	"fluid ounces": "fl-oz",
@@ -80,15 +84,16 @@ function normalizeUnit(input: string) {
 		.replace(/²/g, "2")
 		.replace(/³/g, "3")
 		.replace(/\^([23])/g, "$1")
-		.replace(/\s+per\s+/gi, "/")
+		.replace(/\s+/g, " ")
 		.trim();
 	// Symbols such as mW/MW and b/B carry meaning in their capitalization.
 	const exact = units.find((unit) => unit.abbr === raw);
 	if (exact) return exact.abbr;
 	const alias = aliases.get(raw.toLowerCase());
 	if (alias) return alias;
+	const abbreviation = raw.replace(/\s+per\s+/gi, "/");
 	const candidates = units.filter(
-		(unit) => unit.abbr.toLowerCase() === raw.toLowerCase(),
+		(unit) => unit.abbr.toLowerCase() === abbreviation.toLowerCase(),
 	);
 	return candidates.length === 1 ? candidates[0].abbr : null;
 }
@@ -132,7 +137,7 @@ export function parseUnitConversion(query: string): TemporaryResult | null {
 		const target = exactFactors[to];
 		const value =
 			source && target && source.dimension === target.dimension
-				? (request.amount * source.factor) / target.factor
+				? request.amount * (source.factor / target.factor)
 				: convert(request.amount)
 						.from(from as convert.Unit)
 						.to(to as convert.Unit);
