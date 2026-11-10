@@ -32,6 +32,8 @@ RCT_EXPORT_BLOCKING_SYNCHRONOUS_METHOD(install) {
 RCT_EXTERN_METHOD(supportedEvents)
 RCT_EXTERN_METHOD(getApps : (RCTPromiseResolveBlock)
                       resolve rejecter : (RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(lookupDefinition : (NSString)term resolver : (RCTPromiseResolveBlock)resolve
+                      rejecter : (RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(openFile : (NSString)path)
 RCT_EXTERN_METHOD(openWithFinder : (NSString)path)
 RCT_EXTERN_METHOD(toggleDarkMode)

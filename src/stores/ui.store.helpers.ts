@@ -5,6 +5,12 @@ import { DateTime } from "luxon";
 
 export type TemporaryResult =
 	| {
+			kind: "dictionary";
+			word: string;
+			definition: string;
+			status: "loading" | "found" | "missing" | "error";
+	  }
+	| {
 			kind: "text";
 			value: string;
 			secondary?: string;
@@ -498,6 +504,9 @@ export async function fetchFlightInfoFromWeb(
 }
 
 export function formatTemporaryResultForClipboard(result: TemporaryResult) {
+	if (result.kind === "dictionary") {
+		return `${result.word}\n${result.definition}`;
+	}
 	if (result.kind === "text") {
 		return result.secondary
 			? `${result.value} (${result.secondary})`

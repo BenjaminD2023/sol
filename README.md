@@ -55,8 +55,21 @@ https://discord.gg/W9XmqCQCKP
 - Forward media keys to Spotify/Apple Music
 - Blacken Menu Bar
 - Quickly evaluate math operations
+- Define words and phrases using installed macOS dictionaries
 - Script Runner
 - Symbolic Link Support
+
+## Dictionary
+
+Type `define hello` or `define déjà vu` in the launcher to read the definition
+from your active installed macOS dictionaries. Lookup is offline and uses
+Apple's Dictionary Services, including your dictionary language and priority
+settings. The first matching definition is shown in a scrollable result;
+press Return to copy the complete definition.
+
+If a word is missing, use **Open Dictionary**, then **Dictionary → Settings**
+to enable or download the dictionaries you want. Downloads are managed by
+macOS; Sol performs no dictionary downloads or web fallback searches.
 
 ## Emoji compatibility
 

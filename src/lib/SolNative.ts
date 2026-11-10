@@ -2,6 +2,7 @@ import { NativeEventEmitter, NativeModules } from "react-native";
 
 class SolNative extends NativeEventEmitter {
 	openFile: (path: string) => void;
+	lookupDefinition: (term: string) => Promise<string | null>;
 	openWithFinder: (path: string) => void;
 	hideWindow: typeof global.__SolProxy.hideWindow;
 	getEvents: typeof global.__SolProxy.getEvents;
@@ -128,6 +129,7 @@ class SolNative extends NativeEventEmitter {
 		this.getCalendars = global.__SolProxy.getCalendars;
 		this.getApps = module.getApps;
 		this.openFile = module.openFile;
+		this.lookupDefinition = module.lookupDefinition;
 		this.toggleDarkMode = module.toggleDarkMode;
 		this.executeBashScript = module.executeBashScript;
 		this.executeAppleScript = module.executeAppleScript;
