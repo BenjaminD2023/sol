@@ -56,6 +56,7 @@ https://discord.gg/W9XmqCQCKP
 - Blacken Menu Bar
 - Quickly evaluate math operations
 - Convert units offline and currencies using dated reference rates
+- Define words and phrases using installed macOS dictionaries
 - Script Runner
 - Symbolic Link Support
 
@@ -81,6 +82,17 @@ marked as cached/offline. Without a cached rate, Sol shows `Rate unavailable`.
 Press Return on a conversion result to copy it with its units and rate date.
 
 Rate API documentation: [Frankfurter](https://frankfurter.dev/).
+## Dictionary
+
+Type `define hello` or `define déjà vu` in the launcher to read the definition
+from your active installed macOS dictionaries. Lookup is offline and uses
+Apple's Dictionary Services, including your dictionary language and priority
+settings. The first matching definition is shown in a scrollable result;
+press Return to copy the complete definition.
+
+If a word is missing, use **Open Dictionary**, then **Dictionary → Settings**
+to enable or download the dictionaries you want. Downloads are managed by
+macOS; Sol performs no dictionary downloads or web fallback searches.
 
 ## Emoji compatibility
 

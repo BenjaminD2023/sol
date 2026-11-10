@@ -7,6 +7,7 @@ import {
 	fetchCurrencyConversion,
 	parseCurrencyConversion,
 } from "lib/conversions";
+import { parseDictionaryQuery } from "lib/dictionary";
 import type { EmojiSkinTone } from "lib/emojiSkinTones";
 import { normalizeEmojiSkinTone } from "lib/emojiSkinTones";
 import { solNative } from "lib/SolNative";
@@ -65,6 +66,8 @@ let bookmarksDisposer: IReactionDisposer | undefined;
 let configDisposer: IReactionDisposer | undefined;
 let currencyTimer: ReturnType<typeof setTimeout> | undefined;
 let currencyController: AbortController | undefined;
+let dictionaryTimer: ReturnType<typeof setTimeout> | undefined;
+let dictionaryRequestId = 0;
 
 export enum Widget {
 	ONBOARDING = "ONBOARDING",
@@ -729,6 +732,8 @@ export const createUIStore = (root: IRootStore) => {
 		setQuery: (query: string) => {
 			if (currencyTimer != null) clearTimeout(currencyTimer);
 			currencyController?.abort();
+			if (dictionaryTimer != null) clearTimeout(dictionaryTimer);
+			const requestId = ++dictionaryRequestId;
 			store.query = query.replace("\n", " ");
 			store.selectedIndex = 0;
 			store.temporaryResult = null;
@@ -738,6 +743,58 @@ export const createUIStore = (root: IRootStore) => {
 			}
 
 			if (store.focusedWidget === Widget.SEARCH) {
+				const dictionaryTerm = parseDictionaryQuery(store.query);
+				if (dictionaryTerm != null) {
+					store.temporaryResult = {
+						kind: "dictionary",
+						word: dictionaryTerm || "Define a word",
+						definition: dictionaryTerm
+							? "Looking up installed dictionaries…"
+							: "Type define followed by a word or phrase (up to 256 characters).",
+						status: dictionaryTerm ? "loading" : "missing",
+					};
+					if (dictionaryTerm) {
+						dictionaryTimer = setTimeout(() => {
+							void solNative
+								.lookupDefinition(dictionaryTerm)
+								.then((definition) => {
+									if (
+										dictionaryRequestId !== requestId ||
+										store.focusedWidget !== Widget.SEARCH
+									)
+										return;
+									runInAction(() => {
+										store.temporaryResult = {
+											kind: "dictionary",
+											word: dictionaryTerm,
+											definition:
+												definition ||
+												"No definition found in your active installed dictionaries. Enable or download dictionaries in Dictionary → Settings.",
+											status: definition ? "found" : "missing",
+										};
+									});
+								})
+								.catch(() => {
+									if (
+										dictionaryRequestId !== requestId ||
+										store.focusedWidget !== Widget.SEARCH
+									)
+										return;
+									runInAction(() => {
+										store.temporaryResult = {
+											kind: "dictionary",
+											word: dictionaryTerm,
+											definition:
+												"Dictionary lookup is unavailable. Check your installed dictionaries in Dictionary → Settings.",
+											status: "error",
+										};
+									});
+								});
+						}, 150);
+					}
+					return;
+				}
+
 				const timezoneResult = parseTimezoneConversion(store.query);
 				if (timezoneResult != null) {
 					store.temporaryResult = timezoneResult;
@@ -973,6 +1030,8 @@ export const createUIStore = (root: IRootStore) => {
 		cleanUp: () => {
 			if (currencyTimer != null) clearTimeout(currencyTimer);
 			currencyController?.abort();
+			if (dictionaryTimer != null) clearTimeout(dictionaryTimer);
+			dictionaryRequestId++;
 			onShowListener?.remove();
 			onHideListener?.remove();
 			onFileSearchListener?.remove();

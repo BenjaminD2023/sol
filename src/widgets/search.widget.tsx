@@ -9,11 +9,13 @@ import { MainInput } from "components/MainInput";
 import { StudentHubDashboard } from "./studentHub.widget";
 import { studentHub } from "lib/studentHub";
 import { renderToKeys } from "lib/shortcuts";
+import { solNative } from "lib/SolNative";
 import { observer } from "mobx-react-lite";
 import { type FC, useEffect, useRef } from "react";
 import {
 	Image,
 	Platform,
+	ScrollView,
 	StyleSheet,
 	Text,
 	TouchableOpacity,
@@ -30,6 +32,35 @@ function TemporaryResultView({
 	result: TemporaryResult;
 	isActive: boolean;
 }) {
+	if (result.kind === "dictionary") {
+		return (
+			<View className="flex-1 px-4">
+				<Text className="text-xs uppercase darker-text">
+					Installed dictionaries · Offline
+				</Text>
+				<Text className="mt-1 text-2xl font-semibold">{result.word}</Text>
+				<ScrollView
+					style={{ maxHeight: 260 }}
+					className="mt-3"
+					nestedScrollEnabled
+				>
+					<Text selectable className="text-base leading-6">
+						{result.definition}
+					</Text>
+				</ScrollView>
+				{(result.status === "missing" || result.status === "error") && (
+					<TouchableOpacity
+						onPress={() =>
+							solNative.openFile("/System/Applications/Dictionary.app")
+						}
+					>
+						<Text className="mt-3 text-sm underline">Open Dictionary</Text>
+					</TouchableOpacity>
+				)}
+			</View>
+		);
+	}
+
 	if (result.kind === "comparison") {
 		return (
 			<View className="flex-1 px-4">

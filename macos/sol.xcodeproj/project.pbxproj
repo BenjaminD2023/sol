@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		BB6A00012F00000000000001 /* RunningApplicationActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB6A00012F00000000000002 /* RunningApplicationActions.swift */; };
+		DC5100000000000000000001 /* DictionaryLookup.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC5100000000000000000002 /* DictionaryLookup.swift */; };
 		3919C725599C8DA45324A5C6 /* libPods-macOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1194CEEB2780EBB1CE91CBEB /* libPods-macOS.a */; };
 		514201522437B4B40078DB4F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 514201512437B4B40078DB4F /* Assets.xcassets */; };
 		514201552437B4B40078DB4F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 514201532437B4B40078DB4F /* Main.storyboard */; };
@@ -78,6 +79,7 @@
 
 /* Begin PBXFileReference section */
 		BB6A00012F00000000000002 /* RunningApplicationActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunningApplicationActions.swift; sourceTree = "<group>"; };
+		DC5100000000000000000002 /* DictionaryLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryLookup.swift; sourceTree = "<group>"; };
 		1194CEEB2780EBB1CE91CBEB /* libPods-macOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-macOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		434AA4134E3E6A10DF347D75 /* Pods-macOS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-macOS.debug.xcconfig"; path = "Target Support Files/Pods-macOS/Pods-macOS.debug.xcconfig"; sourceTree = "<group>"; };
 		514201492437B4B30078DB4F /* sol-debug.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "sol-debug.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -288,6 +290,7 @@
 				7071D43627B3211700F8A4DC /* AppleScriptHelper.swift */,
 				7071D43527B3211700F8A4DC /* DarkMode.swift */,
 				70969E1627966ECD00BE3F1C /* SolNative.swift */,
+				DC5100000000000000000002 /* DictionaryLookup.swift */,
 				70969E182796719100BE3F1C /* SolNative.mm */,
 				701086A627989798004C8CCD /* SolEmitter.swift */,
 				700A18D7279DBBE40096C830 /* ApplicationSearcher.swift */,
@@ -604,6 +607,7 @@
 				70FEADF529E496BC008B5F36 /* processes.mm in Sources */,
 				70911D4E28BB22620005FD0E /* JSIBindings.mm in Sources */,
 				70969E1727966ECD00BE3F1C /* SolNative.swift in Sources */,
+				DC5100000000000000000001 /* DictionaryLookup.swift in Sources */,
 				70E80B5C294C699E0094F1B5 /* NotchHelper.swift in Sources */,
 				70E80B63294C719C0094F1B5 /* CGImage.swift in Sources */,
 				7071D43727B3211700F8A4DC /* DarkMode.swift in Sources */,

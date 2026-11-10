@@ -3,6 +3,7 @@ import HotKey
 import LaunchAtLogin
 
 private let keychain = Keychain(service: "Sol")
+private let dictionaryQueue = DispatchQueue(label: "sol.dictionary.lookup", qos: .userInitiated)
 
 @objc(SolNative)
 class SolNative: RCTEventEmitter {
@@ -91,6 +92,16 @@ class SolNative: RCTEventEmitter {
   ) {
     let apps = ApplicationSearcher.shared.getAllApplications()
     resolve(apps)
+  }
+
+  @objc func lookupDefinition(
+    _ term: String,
+    resolver resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    dictionaryQueue.async {
+      resolve(DictionaryLookup.definition(for: term))
+    }
   }
 
   @objc func openFile(_ path: String) {

@@ -6,6 +6,7 @@ class SolNative extends NativeEventEmitter {
 	quitApplication: (
 		path: string,
 	) => Promise<"requested" | "notRunning" | "protectedApplication" | "failed">;
+	lookupDefinition: (term: string) => Promise<string | null>;
 	openWithFinder: (path: string) => void;
 	hideWindow: typeof global.__SolProxy.hideWindow;
 	getEvents: typeof global.__SolProxy.getEvents;
@@ -134,6 +135,7 @@ class SolNative extends NativeEventEmitter {
 		this.openStudentHubURL = module.openStudentHubURL;
 		this.openFile = module.openFile;
 		this.quitApplication = module.quitApplication;
+		this.lookupDefinition = module.lookupDefinition;
 		this.toggleDarkMode = module.toggleDarkMode;
 		this.executeBashScript = module.executeBashScript;
 		this.executeAppleScript = module.executeAppleScript;
