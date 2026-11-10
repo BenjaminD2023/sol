@@ -36,6 +36,10 @@ RCT_EXTERN_METHOD(quitApplication : (NSString)path resolve : (
     RCTPromiseResolveBlock)resolve reject : (RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(lookupDefinition : (NSString)term resolver : (RCTPromiseResolveBlock)resolve
                       rejecter : (RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(searchFiles : (NSString)query paths : (NSArray *)paths resolve : (
+    RCTPromiseResolveBlock)resolve reject : (RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(cancelFileSearch)
+RCT_EXTERN_METHOD(revealFile : (NSString)path)
 RCT_EXTERN_METHOD(openFile : (NSString)path)
 RCT_EXTERN_METHOD(openWithFinder : (NSString)path)
 RCT_EXTERN_METHOD(toggleDarkMode)

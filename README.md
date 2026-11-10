@@ -32,6 +32,7 @@ https://discord.gg/W9XmqCQCKP
 ## Features
 
 - App search
+- Local file search with Spotlight and an offline fallback index
 - Custom shortcuts
 - Google translate
 - Calendar
@@ -93,6 +94,15 @@ press Return to copy the complete definition.
 If a word is missing, use **Open Dictionary**, then **Dictionary → Settings**
 to enable or download the dictionaries you want. Downloads are managed by
 macOS; Sol performs no dictionary downloads or web fallback searches.
+## File search
+
+Type at least two characters in the launcher to see matching files alongside apps, or use **Search Files** for the full result list. Search matches filenames, with exact and prefix matches ranked first. Press Return to open a result, or Shift+Return to reveal the selected file in Finder.
+
+Spotlight searches the home folder and the folders listed under Settings → General → File Search Paths. Sol maintains a fallback index only for those listed folders, so files can still be found when Spotlight does not index them. Hidden files and application-package contents are excluded. Search stays on the device.
+
+macOS privacy permissions and Spotlight exclusions can limit results. The file search settings include an optional link to Full Disk Access for protected locations.
+
+Run `scripts/test-file-search.sh` with the Xcode command line tools selected to verify matching, indexing, migration, ranking, and cancellation.
 
 ## Emoji compatibility
 

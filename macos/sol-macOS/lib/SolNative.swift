@@ -104,6 +104,27 @@ class SolNative: RCTEventEmitter {
     }
   }
 
+  @objc func searchFiles(
+    _ query: String, paths: [String], resolve: @escaping RCTPromiseResolveBlock,
+    reject: RCTPromiseRejectBlock
+  ) {
+    DispatchQueue.main.async {
+      SpotlightFileSearch.shared.search(query: query, paths: paths) { files in
+        resolve(files.map { ["path": $0.path, "name": $0.name, "isFolder": $0.is_folder] as [String: Any] })
+      }
+    }
+  }
+
+  @objc func cancelFileSearch() {
+    DispatchQueue.main.async { SpotlightFileSearch.shared.cancel() }
+  }
+
+  @objc func revealFile(_ path: String) {
+    DispatchQueue.main.async {
+      NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+    }
+  }
+
   @objc func openFile(_ path: String) {
     // This is deprecated but it opens the apps with a single line of code
     NSWorkspace.shared.openFile(path)

@@ -7,6 +7,12 @@ class SolNative extends NativeEventEmitter {
 		path: string,
 	) => Promise<"requested" | "notRunning" | "protectedApplication" | "failed">;
 	lookupDefinition: (term: string) => Promise<string | null>;
+	revealFile: (path: string) => void;
+	searchFiles: (
+		query: string,
+		paths: string[],
+	) => Promise<{ name: string; path: string; isFolder: boolean }[]>;
+	cancelFileSearch: () => void;
 	openWithFinder: (path: string) => void;
 	hideWindow: typeof global.__SolProxy.hideWindow;
 	getEvents: typeof global.__SolProxy.getEvents;
@@ -136,6 +142,9 @@ class SolNative extends NativeEventEmitter {
 		this.openFile = module.openFile;
 		this.quitApplication = module.quitApplication;
 		this.lookupDefinition = module.lookupDefinition;
+		this.revealFile = module.revealFile;
+		this.searchFiles = module.searchFiles;
+		this.cancelFileSearch = module.cancelFileSearch;
 		this.toggleDarkMode = module.toggleDarkMode;
 		this.executeBashScript = module.executeBashScript;
 		this.executeAppleScript = module.executeAppleScript;

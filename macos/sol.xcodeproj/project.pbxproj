@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		BB6A00012F00000000000001 /* RunningApplicationActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB6A00012F00000000000002 /* RunningApplicationActions.swift */; };
 		DC5100000000000000000001 /* DictionaryLookup.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC5100000000000000000002 /* DictionaryLookup.swift */; };
+		BB7A00012F00000000000001 /* SpotlightFileSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB7A00012F00000000000002 /* SpotlightFileSearch.swift */; };
 		3919C725599C8DA45324A5C6 /* libPods-macOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1194CEEB2780EBB1CE91CBEB /* libPods-macOS.a */; };
 		514201522437B4B40078DB4F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 514201512437B4B40078DB4F /* Assets.xcassets */; };
 		514201552437B4B40078DB4F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 514201532437B4B40078DB4F /* Main.storyboard */; };
@@ -80,6 +81,7 @@
 /* Begin PBXFileReference section */
 		BB6A00012F00000000000002 /* RunningApplicationActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunningApplicationActions.swift; sourceTree = "<group>"; };
 		DC5100000000000000000002 /* DictionaryLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryLookup.swift; sourceTree = "<group>"; };
+		BB7A00012F00000000000002 /* SpotlightFileSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotlightFileSearch.swift; sourceTree = "<group>"; };
 		1194CEEB2780EBB1CE91CBEB /* libPods-macOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-macOS.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		434AA4134E3E6A10DF347D75 /* Pods-macOS.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-macOS.debug.xcconfig"; path = "Target Support Files/Pods-macOS/Pods-macOS.debug.xcconfig"; sourceTree = "<group>"; };
 		514201492437B4B30078DB4F /* sol-debug.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "sol-debug.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -275,6 +277,7 @@
 			isa = PBXGroup;
 			children = (
 				70A198F92F8A7B9D00B36D69 /* FileSearchIndex.swift */,
+				BB7A00012F00000000000002 /* SpotlightFileSearch.swift */,
 				70A198FA2F8A7B9D00B36D69 /* FileSearchIndexer.swift */,
 				70A198FB2F8A7B9D00B36D69 /* FileSearchIndexObjC.swift */,
 				7062E8342EA5331D008A9B69 /* FolderWatcherJSI.h */,
@@ -633,6 +636,7 @@
 				70AAC12029F7AB9B004AD3E7 /* GradientView.m in Sources */,
 				70A198FD2F8A7B9D00B36D69 /* FileSearchIndexObjC.swift in Sources */,
 				70A198FE2F8A7B9D00B36D69 /* FileSearchIndex.swift in Sources */,
+				BB7A00012F00000000000001 /* SpotlightFileSearch.swift in Sources */,
 				70A199002F8A7B9D00B36D69 /* FileSearchIndexer.swift in Sources */,
 				70A25D472D33B4D600165270 /* HotKeyManager.swift in Sources */,
 				700A18D8279DBBE40096C830 /* ApplicationSearcher.swift in Sources */,
