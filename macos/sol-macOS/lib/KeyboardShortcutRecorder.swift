@@ -3,30 +3,48 @@ import Cocoa
 
 class KeyboardShortcutRecorder {
   private var monitor: Any?
+  private var pendingShortcut: (keyCode: UInt16, keys: [String])?
   var onShortcut: (([String]) -> Void)?
   var onCancel: (() -> Void)?
 
   func startRecording() {
     guard monitor == nil else { return }
     HotKeyManager.shared.pauseForRecording(true)
-    monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+    monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { [weak self] event in
       guard let self = self else { return event }
-      if event.keyCode == UInt16(kVK_Escape) {
-        self.onCancel?()
-        return nil
-      }
-      let keys = self.keysFrom(event: event)
-      self.onShortcut?(keys)
-      return nil
+      return self.handle(event: event)
     }
   }
 
   func stopRecording() {
+    pendingShortcut = nil
     if let monitor = monitor {
       NSEvent.removeMonitor(monitor)
       self.monitor = nil
       HotKeyManager.shared.pauseForRecording(false)
     }
+  }
+
+  // Commit on release while hotkeys are still paused. Registering a new
+  // launcher on keyDown would let that same keyUp immediately toggle Sol.
+  func handle(event: NSEvent) -> NSEvent? {
+    if event.type == .keyDown {
+      if event.keyCode == UInt16(kVK_Escape) {
+        pendingShortcut = nil
+        onCancel?()
+      } else if !event.isARepeat {
+        pendingShortcut = (event.keyCode, keysFrom(event: event))
+      }
+      return nil
+    }
+    if event.type == .keyUp {
+      if let shortcut = pendingShortcut, shortcut.keyCode == event.keyCode {
+        pendingShortcut = nil
+        onShortcut?(shortcut.keys)
+      }
+      return nil
+    }
+    return event
   }
 
   private func keysFrom(event: NSEvent) -> [String] {

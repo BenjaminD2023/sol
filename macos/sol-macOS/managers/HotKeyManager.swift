@@ -17,7 +17,7 @@ final class HotKeyManager {
   private var recordingShortcut = false
 
   public let settingsHotKey = HotKey(key: .comma, modifiers: [.command])
-  public var mainHotKey = HotKey(key: .space, modifiers: [.command])
+  public var mainHotKey = HotKey(key: .space, modifiers: [.option])
 
   private var hotkeys: [HotKey] = []
   private var eventTap: CFMachPort?
@@ -100,6 +100,7 @@ final class HotKeyManager {
     }
 
     NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) {
+      if self.recordingShortcut { return $0 }
       if $0.modifierFlags.contains(.command) {
         SolEmitter.sharedInstance.keyDown(
           key: "command",
@@ -181,10 +182,16 @@ final class HotKeyManager {
   func setLauncherShortcut(_ value: String) {
     let shortcut = ["command", "option", "control"].contains(value) ? value + "+space" : value
     guard let (key, modifiers) = parseShortcut(shortcut),
-      !modifiers.intersection([.command, .option, .control]).isEmpty
+      !modifiers.intersection([.command, .option, .control]).isEmpty,
+      KeyCombo(key: key, modifiers: modifiers) != settingsHotKey.keyCombo
     else { return }
+    // A reloaded config may move a combination from an action to the launcher.
+    // Release the old action registration before registering its replacement.
+    hotkeys.forEach { $0.isPaused = true }
     mainHotKey.isPaused = true
     mainHotKey = HotKey(key: key, modifiers: modifiers, keyUpHandler: PanelManager.shared.toggle)
+    mainHotKey.isPaused = recordingShortcut
+    hotkeys.filter { $0.keyCombo != mainHotKey.keyCombo }.forEach { $0.isPaused = recordingShortcut }
   }
 
   func pauseForRecording(_ paused: Bool) {
@@ -270,7 +277,10 @@ final class HotKeyManager {
       }
 
       guard let finalKey = keyValue else { continue }
-      let hotKey = HotKey(key: finalKey, modifiers: modifiers)
+      let combo = KeyCombo(key: finalKey, modifiers: modifiers)
+      guard combo != mainHotKey.keyCombo, combo != settingsHotKey.keyCombo else { continue }
+      let hotKey = HotKey(keyCombo: combo)
+      hotKey.isPaused = recordingShortcut
 
       hotKey.keyUpHandler = {
         SolEmitter.sharedInstance.onHotkey(id: key)
