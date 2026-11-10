@@ -446,6 +446,7 @@ export const createUIStore = (root: IRootStore) => {
 		disabledItemIds: [] as string[],
 		editingCustomItem: null as Item | null,
 		apps: [] as Item[],
+		isQuittingApplication: false,
 		isLoading: false,
 		isIndexing: false,
 		indexedFileResults: [] as Item[],
@@ -861,6 +862,44 @@ export const createUIStore = (root: IRootStore) => {
 			//   }
 			// }
 		},
+		quitSelectedApplication: async () => {
+			const item = store.currentItem;
+			if (
+				store.focusedWidget !== Widget.SEARCH ||
+				store.confirmDialogShown ||
+				store.showKeyboardRecorder ||
+				store.isQuittingApplication ||
+				item?.type !== ItemType.APPLICATION ||
+				!item.isRunning ||
+				!item.url
+			)
+				return;
+
+			store.isQuittingApplication = true;
+			try {
+				const result = await solNative.quitApplication(item.url);
+				const name = item.localizedName || item.name;
+				if (result === "requested") {
+					solNative.showToast(`Quit requested for ${name}`, "success");
+				} else if (result === "notRunning") {
+					solNative.showToast(`${name} is no longer running`, "error");
+				} else if (result === "protectedApplication") {
+					solNative.showToast("Use Sol’s menu to quit Sol", "error");
+				} else {
+					solNative.showToast(
+						`Could not send a quit request to ${name}`,
+						"error",
+					);
+				}
+				store.getApps();
+			} catch (_) {
+				solNative.showToast("Could not send a quit request", "error");
+			} finally {
+				runInAction(() => {
+					store.isQuittingApplication = false;
+				});
+			}
+		},
 		getApps: () => {
 			solNative.getApplications().then((apps) => {
 				store.updateApps(apps);
@@ -978,24 +1017,36 @@ export const createUIStore = (root: IRootStore) => {
 			const safariBookmarks = await store.getSafariBookmarks();
 
 			const sources = [
-				{ id: "brave", favicon: Assets.Brave, path: `/Users/${store.username}/Library/Application Support/BraveSoftware/Brave-Browser/Default/Bookmarks` },
-				{ id: "chrome", favicon: Assets.Chrome, path: `/Users/${store.username}/Library/Application Support/Google/Chrome/Default/Bookmarks` },
-				{ id: "vivaldi", favicon: Assets.Vivaldi, path: `/Users/${store.username}/Library/Application Support/Vivaldi/Default/Bookmarks` },
-				{ id: "edge", favicon: Assets.Edge, path: `/Users/${store.username}/Library/Application Support/Microsoft Edge/Default/Bookmarks` },
+				{
+					id: "brave",
+					favicon: Assets.Brave,
+					path: `/Users/${store.username}/Library/Application Support/BraveSoftware/Brave-Browser/Default/Bookmarks`,
+				},
+				{
+					id: "chrome",
+					favicon: Assets.Chrome,
+					path: `/Users/${store.username}/Library/Application Support/Google/Chrome/Default/Bookmarks`,
+				},
+				{
+					id: "vivaldi",
+					favicon: Assets.Vivaldi,
+					path: `/Users/${store.username}/Library/Application Support/Vivaldi/Default/Bookmarks`,
+				},
+				{
+					id: "edge",
+					favicon: Assets.Edge,
+					path: `/Users/${store.username}/Library/Application Support/Microsoft Edge/Default/Bookmarks`,
+				},
 			];
 
 			const chromiumResults = await Promise.all(
 				sources.map((s) => store.getChromiumBookmarks(s)),
 			);
 
-
 			// Use a Set to keep track of unique ids
 			const seenIds = new Set<string>();
 
-			for (const bookmark of [
-				...safariBookmarks,
-				...chromiumResults.flat(),
-			]) {
+			for (const bookmark of [...safariBookmarks, ...chromiumResults.flat()]) {
 				if (!seenIds.has(bookmark.id)) {
 					allBookmarks.push(bookmark);
 					seenIds.add(bookmark.id);
@@ -1051,25 +1102,27 @@ export const createUIStore = (root: IRootStore) => {
 					bookmarkFolder: null | string;
 				}[] = [];
 
-				for (const root of Object.values<{ children?: BookmarkNode[] } | undefined>(
-					OGbookmarks.roots ?? {},
-				)) {
+				for (const root of Object.values<
+					{ children?: BookmarkNode[] } | undefined
+				>(OGbookmarks.roots ?? {})) {
 					if (root?.children) {
 						traverse(bookmarks, root.children, null);
 					}
 				}
 
-				return bookmarks.map((bookmark, idx): Item => ({
-					id: `${bookmark.title}_${source.id}_${idx}`,
-					name: bookmark.title,
-					bookmarkFolder: bookmark.bookmarkFolder,
-					type: ItemType.BOOKMARK,
-					faviconFallback: source.favicon,
-					url: bookmark.url,
-					callback: () => {
-						Linking.openURL(bookmark.url);
-					},
-				}));
+				return bookmarks.map(
+					(bookmark, idx): Item => ({
+						id: `${bookmark.title}_${source.id}_${idx}`,
+						name: bookmark.title,
+						bookmarkFolder: bookmark.bookmarkFolder,
+						type: ItemType.BOOKMARK,
+						faviconFallback: source.favicon,
+						url: bookmark.url,
+						callback: () => {
+							Linking.openURL(bookmark.url);
+						},
+					}),
+				);
 			} catch (e) {
 				console.error(`Could not read ${source.id} bookmarks: ${e}`);
 				return [];

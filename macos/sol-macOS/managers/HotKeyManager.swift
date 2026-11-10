@@ -76,6 +76,13 @@ final class HotKeyManager {
         control: controlPressed
       )
 
+      // Cmd+Q in the launcher acts on the selected running application in JS.
+      // Always consume it for this panel, including empty/non-app selections,
+      // so AppKit cannot interpret it as a request to quit Sol itself.
+      if $0.keyCode == 12 && metaPressed && $0.window is Panel {
+        return nil
+      }
+
       if self.handledKeys.contains($0.keyCode) {
         return nil
       }
