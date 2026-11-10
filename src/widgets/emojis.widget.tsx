@@ -9,8 +9,8 @@ import {Text, View, TouchableOpacity} from 'react-native'
 import {useStore} from 'store'
 import type {Emoji} from 'stores/emoji.store'
 import {EMOJI_ROW_SIZE} from 'stores/emoji.store'
-import type {LegendListRef} from '@legendapp/list'
-import {LegendList} from '@legendapp/list'
+import type {LegendListRef} from '@legendapp/list/react-native'
+import {LegendList} from '@legendapp/list/react-native'
 import {LoadingBar} from 'components/LoadingBar'
 
 interface Props {

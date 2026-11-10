@@ -1,4 +1,4 @@
-import { LegendList } from '@legendapp/list'
+import { LegendList } from '@legendapp/list/react-native'
 import { Assets, Icons } from 'assets'
 import clsx from 'clsx'
 import Favicon from 'components/Favicon'

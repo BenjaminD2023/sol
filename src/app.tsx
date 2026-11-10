@@ -1,5 +1,7 @@
 import "./global.css";
 import "config";
+import { useEffect } from "react";
+import { studentHub } from "lib/studentHub";
 import { RootContainer } from "containers";
 import "intl";
 import "intl/locale-data/jsonp/en";
@@ -21,6 +23,7 @@ remapProps(LegendList, {
 });
 
 export const App = () => {
+	useEffect(() => { studentHub.start(); return studentHub.stop; }, []);
 	return (
 		<StoreProvider value={root}>
 			<View style={userTheme}>

@@ -1,3 +1,4 @@
+import { studentHub } from "lib/studentHub";
 import * as Sentry from "@sentry/react-native";
 import { Assets } from "assets";
 import { Parser } from "expr-eval";
@@ -11,7 +12,6 @@ import {
 	normalizeShortcutMap,
 } from "lib/shortcuts";
 import { canonicalShortcut, launcherShortcut, shortcutError } from "lib/shortcutValidation";
-import { googleTranslate } from "lib/translator";
 import MiniSearch from "minisearch";
 import {
 	autorun,
@@ -38,13 +38,11 @@ import {
 } from "./persisted-config";
 import {
 	createTextTemporaryResult,
-	fetchFlightInfoFromWeb,
 	formatExpressionResult,
 	type BookmarkNode,
 	getInitials,
 	getSearchMatchTier,
 	normalizeCalculatorQuery,
-	parseFlightIdentifier,
 	parseTimezoneConversion,
 	parseUnitConversion,
 	type TemporaryResult,
@@ -576,6 +574,15 @@ export const createUIStore = (root: IRootStore) => {
 						]
 					: []),
 				...temporaryResultItems,
+				...(!store.temporaryResult && !/^define\s/i.test(store.query) && /\s/.test(store.query.trim()) ? [{
+					id: "studenthub-create", type: ItemType.CONFIGURATION,
+					name: `Create task: ${store.query}`, icon: "☑",
+					callback: () => { void studentHub.mutate("create", null, { text: store.query }); },
+				}] : []),
+				...studentHub.tasks.filter(task => !task.isCompleted && `${task.title} ${task.course}`.toLowerCase().includes(store.query.toLowerCase())).slice(0, 8).map(task => ({
+					id: `studenthub-task-${task.id}`, type: ItemType.CONFIGURATION, name: task.title, icon: "☐",
+					callback: () => { void Linking.openURL(task.url); },
+				})),
 				...results,
 			];
 
@@ -673,35 +680,10 @@ export const createUIStore = (root: IRootStore) => {
 			return store.disabledItemIds.includes(itemId);
 		},
 		translateQuery: async () => {
-			store.isLoading = true;
-			store.translationResults = [];
-			store.focusedWidget = Widget.TRANSLATION;
-			store.selectedIndex = 0;
-
-			try {
-				const translations = await googleTranslate(
-					store.firstTranslationLanguage,
-					store.secondTranslationLanguage,
-					store.thirdTranslationLanguage,
-					store.query,
-				);
-
-				runInAction(() => {
-					store.translationResults = translations;
-					store.isLoading = false;
-				});
-			} catch (_) {
-				runInAction(() => {
-					store.isLoading = false;
-				});
-			}
+			void studentHub.capture(store.query);
 		},
 		openKeyboardSettings: () => {
-			try {
-				Linking.openURL(`/System/Library/PreferencePanes/Keyboard.prefPane`);
-			} catch (e) {
-				console.error(`Could not open keyboard preferences ${e}`);
-			}
+			void Linking.openURL("/System/Library/PreferencePanes/Keyboard.prefPane");
 		},
 		setFirstTranslationLanguage: (l: string) => {
 			store.firstTranslationLanguage = l;
@@ -759,28 +741,6 @@ export const createUIStore = (root: IRootStore) => {
 					return;
 				}
 
-				const flightIdentifier = parseFlightIdentifier(store.query);
-				if (flightIdentifier != null) {
-					const querySnapshot = store.query;
-					void fetchFlightInfoFromWeb(flightIdentifier)
-						.then((result) => {
-							if (
-								result != null &&
-								store.focusedWidget === Widget.SEARCH &&
-								store.query === querySnapshot
-							) {
-								runInAction(() => {
-									store.temporaryResult = result;
-								});
-							}
-						})
-						.catch((error) => {
-							console.log(
-								`Flight info request failed for ${flightIdentifier}`,
-								error,
-							);
-						});
-				}
 
 				try {
 					const res = exprParser.evaluate(

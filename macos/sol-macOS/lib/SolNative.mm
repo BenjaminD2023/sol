@@ -41,6 +41,8 @@ RCT_EXTERN_METHOD(executeBashScript : (NSString)source resolver : (
     RCTPromiseResolveBlock)resolve rejecter : (RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(getMediaInfo : (RCTPromiseResolveBlock)
                       resolve rejecter : (RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(openStudentHubURL : (NSString *)url resolver : (RCTPromiseResolveBlock)resolve rejecter : (RCTPromiseRejectBlock)reject)
+
 RCT_EXTERN_METHOD(setGlobalShortcut : (NSString)key)
 RCT_EXTERN_METHOD(setLaunchAtLogin : (BOOL)launchAtLogin)
 RCT_EXTERN_METHOD(getAccessibilityStatus : (RCTPromiseResolveBlock)

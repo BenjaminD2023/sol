@@ -161,6 +161,21 @@ class SolNative: RCTEventEmitter {
     })
   }
 
+  @objc func openStudentHubURL(_ value: String, resolver resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+    guard let url = URL(string: value), url.scheme == "studenthub" else {
+      reject("invalid_url", "Invalid Student Hub URL", nil)
+      return
+    }
+    DispatchQueue.main.async {
+      let configuration = NSWorkspace.OpenConfiguration()
+      configuration.activates = false
+      NSWorkspace.shared.open([url], withApplicationAt: URL(fileURLWithPath: "/Applications/StudentHub.app"), configuration: configuration) { _, error in
+        if let error = error { reject("studenthub", "Could not open Student Hub", error) }
+        else { resolve(nil) }
+      }
+    }
+  }
+
   @objc func setGlobalShortcut(_ key: String) {
     HotKeyManager.shared.setLauncherShortcut(key)
   }

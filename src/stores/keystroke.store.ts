@@ -1,3 +1,4 @@
+import { studentHub } from "lib/studentHub";
 import { extractMeetingLink } from "lib/calendar";
 import { solNative } from "lib/SolNative";
 import { makeAutoObservable } from "mobx";
@@ -45,6 +46,7 @@ export const createKeystrokeStore = (root: IRootStore) => {
 			meta: boolean;
 			shift: boolean;
 		}) => {
+			if (studentHub.editing) return;
 			switch (keyCode) {
 				// "j" / "n" keys - simulate a down key press
 				case 38:
@@ -258,58 +260,7 @@ export const createKeystrokeStore = (root: IRootStore) => {
 						}
 
 						case Widget.SEARCH: {
-							if (
-								!root.ui.query &&
-								root.ui.calendarAuthorizationStatus === "notDetermined"
-							) {
-								solNative
-									.requestCalendarAccess()
-									.then(() => {
-										root.ui.getCalendarAccess();
-									})
-									.catch((e) => {
-										root.ui.getCalendarAccess();
-									});
-								solNative.hideWindow();
-								return;
-							}
-
-							if (!root.ui.query && !root.ui.isAccessibilityTrusted) {
-								solNative.requestAccessibilityAccess();
-								solNative.hideWindow();
-								return;
-							}
-
-							if (!root.ui.query) {
-								if (!root.ui.hasDismissedGettingStarted) {
-									Linking.openURL(
-										"https://sol.ospfranco.com/getting_started",
-									).catch((e) => {
-										solNative.showToast(
-											`Could not open URL: https://sol.ospfranco.com/getting_started, error: ${e}`,
-											"error",
-										);
-									});
-									solNative.hideWindow();
-									root.ui.setHasDismissedGettingStarted(true);
-									return;
-								}
-
-								if (
-									!!root.calendar.upcomingEvent &&
-									root.calendar.upcomingEvent.eventStatus !== 3
-								) {
-									if (root.calendar.upcomingEvent.eventLink) {
-										Linking.openURL(root.calendar.upcomingEvent.eventLink);
-									} else {
-										Linking.openURL("ical://");
-									}
-
-									return;
-								}
-
-								return;
-							}
+							if (!root.ui.query) return;
 
 							//    ____  _    _ ______ _______     __  ______ _   _ _______ ______ _____  ______ _____
 							//   / __ \| |  | |  ____|  __ \ \   / / |  ____| \ | |__   __|  ____|  __ \|  ____|  __ \
@@ -321,80 +272,12 @@ export const createKeystrokeStore = (root: IRootStore) => {
 							root.ui.addToHistory(root.ui.query);
 
 							if (shift) {
-								root.ui.translateQuery();
+								void studentHub.capture(root.ui.query);
 								return;
 							}
 
-							// If there are no visible items, or if the query is a meta (⌘ is pressed) query, open a browser search
 							if (!root.ui.searchItems.length || meta) {
-								switch (root.ui.searchEngine) {
-									case "google":
-										Linking.openURL(
-											`https://google.com/search?q=${encodeURI(root.ui.query)}`,
-										).catch((e) => {
-											solNative.showToast(
-												`Could not open URL: ${root.ui.query}, error: ${e}`,
-												"error",
-											);
-										});
-										break;
-									case "duckduckgo":
-										Linking.openURL(
-											`https://duckduckgo.com/?q=${encodeURI(root.ui.query)}`,
-										).catch((e) => {
-											solNative.showToast(
-												`Could not open URL: ${root.ui.query}, error: ${e}`,
-												"error",
-											);
-										});
-										break;
-									case "bing":
-										Linking.openURL(
-											`https://bing.com/search?q=${encodeURI(root.ui.query)}`,
-										).catch((e) => {
-											solNative.showToast(
-												`Could not open URL: ${root.ui.query}, error: ${e}`,
-												"error",
-											);
-										});
-										break;
-									case "perplexity":
-										Linking.openURL(
-											`https://perplexity.ai/search/new?q=${encodeURI(
-												root.ui.query,
-											)}`,
-										).catch((e) => {
-											solNative.showToast(
-												`Could not open URL: ${root.ui.query}, error: ${e}`,
-												"error",
-											);
-										});
-										break;
-									case "custom":
-										if (
-											!isValidCustomSearchEngineUrl(root.ui.customSearchUrl)
-										) {
-											solNative.showToast(
-												`Invalid search URL. Please ensure the URL is a valid search engine URL and includes a query parameter. Example: https://google.com/search?q=%s`,
-												"error",
-											);
-											break;
-										}
-										Linking.openURL(
-											root.ui.customSearchUrl.replace(
-												"%s",
-												encodeURI(root.ui.query),
-											),
-										).catch((e) => {
-											solNative.showToast(
-												`Could not open URL: ${root.ui.query}, error: ${e}`,
-												"error",
-											);
-										});
-										break;
-								}
-
-								solNative.hideWindow();
+								void studentHub.capture(root.ui.query);
 								return;
 							}
 

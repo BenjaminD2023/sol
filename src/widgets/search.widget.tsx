@@ -6,6 +6,8 @@ import { FileIcon } from "components/FileIcon";
 import { Key } from "components/Key";
 import { LoadingBar } from "components/LoadingBar";
 import { MainInput } from "components/MainInput";
+import { StudentHubDashboard } from "./studentHub.widget";
+import { studentHub } from "lib/studentHub";
 import { renderToKeys } from "lib/shortcuts";
 import { observer } from "mobx-react-lite";
 import { type FC, useEffect, useRef } from "react";
@@ -293,9 +295,10 @@ export const SearchWidget: FC = observer(() => {
 			})}
 		>
 			<View className="flex-row items-center gap-2 px-3">
-				<MainInput className="flex-1" hideIcon />
+				<MainInput className="flex-1" hideIcon placeholder="Search apps, files, conversions, or capture a task…" />
 			</View>
 
+			{!store.ui.query && <StudentHubDashboard />}
 			{!!store.ui.query && (
 				<>
 					<LoadingBar />
@@ -325,33 +328,9 @@ export const SearchWidget: FC = observer(() => {
 								<View className="mx-2" />
 							</>
 						)}
-						<Text className="text-xs darker-text mr-1">Translate</Text>
-						<Key symbol={"⇧"} />
-						<Key symbol={"⏎"} />
-						{!items.length && (
-							<>
-								<View className="mx-2" />
-								<Text
-									className={clsx("text-xs darker-text mr-1", {
-										"font-semibold": !items.length,
-									})}
-								>
-									Search
-								</Text>
-								<Key symbol={"⌘"} />
-								<Key symbol={"⏎"} />
-							</>
-						)}
-						<View className="mx-2" />
-						<Text
-							className={clsx("text-xs darker-text mr-1", {
-								"font-semibold": !items.length,
-							})}
-						>
-							Browser Search
-						</Text>
-						{!!items.length && <Key symbol={"⌘"} />}
-						<Key symbol={"⏎"} primary={!items.length} />
+						<TouchableOpacity onPress={() => { void studentHub.capture(store.ui.query); }}>
+							<Text className="text-xs text-accent">Review task in Hub</Text>
+						</TouchableOpacity>
 						{!!items.length && (
 							<>
 								<View className="mx-2" />
