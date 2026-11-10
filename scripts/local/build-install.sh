@@ -10,6 +10,12 @@ backup_dir="$HOME/Backups/Sol-$(date +%Y%m%d-%H%M%S)"
 if [[ "${1:-}" == "--bump" ]]; then
   /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $(($(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' macos/sol-macOS/Info.plist) + 1))" macos/sol-macOS/Info.plist
 fi
+# Recreate this build product so macOS does not protect resources in a previously launched bundle.
+previous_app="$build_dir/Build/Products/Release/Sol-previous-build.app"
+if [[ -d "$build_dir/Build/Products/Release/Sol.app" ]]; then
+  if [[ -d "$previous_app" ]]; then rm -rf "$previous_app"; fi
+  mv "$build_dir/Build/Products/Release/Sol.app" "$previous_app"
+fi
 bun run typecheck
 bun test
 xcodebuild -workspace macos/sol.xcworkspace -scheme release -configuration Release \
@@ -26,7 +32,11 @@ mkdir -p "$backup_dir"
 [[ ! -d /Applications/Sol.app ]] || ditto /Applications/Sol.app "$backup_dir/Sol.app"
 [[ ! -d "$HOME/.config/sol" ]] || ditto "$HOME/.config/sol" "$backup_dir/config"
 # Gracefully stop only this fork's current installed instance before replacement.
-/usr/bin/osascript -e 'tell application id "com.benjamind2023.sol" to quit' >/dev/null 2>&1 || true
+/usr/bin/pkill -TERM -f '^/Applications/Sol.app/Contents/MacOS/Sol$' 2>/dev/null || true
+for attempt in {1..20}; do
+  /usr/bin/pgrep -f '^/Applications/Sol.app/Contents/MacOS/Sol$' >/dev/null || break
+  sleep 0.1
+done
 if [[ -d /Applications/Sol.app ]]; then mv /Applications/Sol.app "$backup_dir/replaced-Sol.app"; fi
 ditto "$app" /Applications/Sol.app
 codesign --verify --deep --strict /Applications/Sol.app

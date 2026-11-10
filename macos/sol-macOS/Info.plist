@@ -21,7 +21,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>2.1.365</string>
 	<key>CFBundleVersion</key>
-	<string>1000</string>
+	<string>1001</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
 	<key>LSMinimumSystemVersion</key>
@@ -57,14 +57,14 @@
 	<string>Sol needs permissions to read bookmarks and other files</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
+	<key>SUAutomaticallyUpdate</key>
+	<true/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 	<key>SUFeedURL</key>
 	<string>https://github.com/BenjaminD2023/sol/releases/latest/download/benjamin-appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>f0g/xaaRGl/QXkbZ4VyIlfQZD8hGinfUXbeG7SsmGY4=</string>
-	<key>SUEnableAutomaticChecks</key>
-	<true/>
-	<key>SUAutomaticallyUpdate</key>
-	<true/>
 	<key>SUSendProfileInfo</key>
 	<false/>
 </dict>

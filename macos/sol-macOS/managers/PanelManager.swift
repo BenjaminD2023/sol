@@ -17,6 +17,9 @@ enum PreferredScreen {
   public func setRootView(_ rootView: NSView) {
     mainWindow.contentView!.addSubview(rootView)
     self.rootView = rootView
+    // Give React a real initial layout before the first onLayout callback.
+    rootView.setFrameSize(baseSize)
+    mainWindow.setContentSize(baseSize)
   }
 
   @objc func showWindow(target: String? = nil) {

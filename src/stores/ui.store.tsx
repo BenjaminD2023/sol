@@ -602,19 +602,25 @@ export const createUIStore = (root: IRootStore) => {
 				? [{ id: "temporary", type: ItemType.TEMPORARY_RESULT, name: "" }]
 				: [];
 
+			const captureQuery = store.query;
+			const createTaskItems: Item[] = !store.temporaryResult && !/^define\s/i.test(captureQuery) && /\s/.test(captureQuery.trim()) ? [{
+				id: "studenthub-create", type: ItemType.CONFIGURATION,
+				name: `Create task: ${captureQuery}`, icon: "☑",
+				callback: () => { void studentHub.mutate("create", null, { text: captureQuery }); },
+			}] : [];
+			const taskIntent = /\b(task|todo|homework|assignment|tmr|tomorrow|today|due)\b/i.test(captureQuery);
+			const exactApps = results.filter(item => item.type === ItemType.APPLICATION && [item.name, item.localizedName].some(name => name?.toLowerCase() === captureQuery.toLowerCase()));
 			const finalResults: Item[] = [
 				...temporaryResultItems,
-				...(!store.temporaryResult && !/^define\s/i.test(store.query) && /\s/.test(store.query.trim()) ? [{
-					id: "studenthub-create", type: ItemType.CONFIGURATION,
-					name: `Create task: ${store.query}`, icon: "☑",
-					callback: () => { void studentHub.mutate("create", null, { text: store.query }); },
-				}] : []),
+				...exactApps,
+				...(taskIntent ? createTaskItems : []),
 				...studentHub.tasks.filter(task => !task.isCompleted && `${task.title} ${task.course}`.toLowerCase().includes(store.query.toLowerCase())).slice(0, 8).map(task => ({
 					id: `studenthub-task-${task.id}`, type: ItemType.CONFIGURATION, name: task.title, icon: "☐",
 					callback: () => { void Linking.openURL(task.url); },
 				})),
-				...results,
+				...results.filter(item => !exactApps.some(app => app.id === item.id)),
 				...store.indexedFileResults.slice(0, 10),
+				...(!taskIntent ? createTaskItems : []),
 			];
 
 			return finalResults;
