@@ -48,6 +48,14 @@ export const createKeystrokeStore = (root: IRootStore) => {
 		}) => {
 			if (studentHub.editing) return;
 			switch (keyCode) {
+				// Cmd+Q quits the selected running app; native code consumes the key
+				// before AppKit can use it to terminate the launcher.
+				case 12: {
+					if (meta && !shift && !store.controlPressed) {
+						await root.ui.quitSelectedApplication();
+					}
+					break;
+				}
 				// "j" / "n" keys - simulate a down key press
 				case 38:
 				case 45: {

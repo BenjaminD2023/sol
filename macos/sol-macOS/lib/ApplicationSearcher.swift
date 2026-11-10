@@ -266,6 +266,11 @@ class Application {
     appUrls.append(contentsOf: fixedUrls)
 
     let runningApps = NSWorkspace.shared.runningApplications
+    // Running apps may live in Downloads, an external volume, or a development
+    // checkout rather than one of the standard Applications directories.
+    appUrls.append(contentsOf: runningApps.compactMap {
+      $0.activationPolicy == .regular ? $0.bundleURL : nil
+    })
 
     do {
       let directories = try getApplicationDirectories()

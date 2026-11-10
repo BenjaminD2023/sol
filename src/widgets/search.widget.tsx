@@ -316,6 +316,18 @@ export const SearchWidget: FC = observer(() => {
 					/>
 
 					<View className="py-2 px-4 flex-row items-center justify-end gap-1 subBg border-t border-color">
+						{store.ui.currentItem?.type === ItemType.APPLICATION &&
+							store.ui.currentItem.isRunning && (
+								<TouchableOpacity
+									onPress={() => void store.ui.quitSelectedApplication()}
+									className="flex-row items-center gap-1 mr-3"
+									accessibilityLabel="Quit selected application"
+								>
+									<Text className="text-xs darker-text mr-1">Quit</Text>
+									<Key symbol={"⌘"} />
+									<Key symbol={"Q"} />
+								</TouchableOpacity>
+							)}
 						{store.ui.currentItem?.type === ItemType.CUSTOM && (
 							<>
 								<Text className="text-xs darker-text mr-1">Edit</Text>

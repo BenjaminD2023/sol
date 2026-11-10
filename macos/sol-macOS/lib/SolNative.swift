@@ -7,14 +7,38 @@ private let keychain = Keychain(service: "Sol")
 @objc(SolNative)
 class SolNative: RCTEventEmitter {
   let appDelegate = NSApp.delegate as? AppDelegate
+  private var applicationObservers: [NSObjectProtocol] = []
 
   override init() {
     super.init()
     SolEmitter.sharedInstance.registerEmitter(emitter: self)
+    for notification in [NSWorkspace.didLaunchApplicationNotification,
+      NSWorkspace.didTerminateApplicationNotification] {
+      applicationObservers.append(NSWorkspace.shared.notificationCenter.addObserver(
+        forName: notification, object: nil, queue: .main
+      ) { [weak self] _ in
+        self?.sendEvent(withName: "applicationsChanged", body: [])
+      })
+    }
     ApplicationSearcher.shared.onApplicationsChanged = {
       self.sendEvent(
         withName: "applicationsChanged",
         body: [])
+    }
+  }
+
+  deinit {
+    for observer in applicationObservers {
+      NSWorkspace.shared.notificationCenter.removeObserver(observer)
+    }
+  }
+
+  @objc func quitApplication(
+    _ path: String, resolve: @escaping RCTPromiseResolveBlock,
+    reject: RCTPromiseRejectBlock
+  ) {
+    DispatchQueue.main.async {
+      resolve(RunningApplicationActions.quit(path: path).rawValue)
     }
   }
 
