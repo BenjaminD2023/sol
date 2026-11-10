@@ -4,81 +4,354 @@ import { v4 as uuid } from "uuid";
 import { solNative } from "./SolNative";
 
 export type HubTask = {
-  id: string; title: string; details: string; course: string;
-  dueDate?: string | null; includesDueTime: boolean; isCompleted: boolean; url: string;
+	id: string;
+	title: string;
+	details: string;
+	course: string;
+	dueDate?: string | null;
+	includesDueTime: boolean;
+	isCompleted: boolean;
+	url: string;
 };
 export type HubCountdown = {
-  id: string; title: string; date: string; nextOccurrence: string;
-  daysRemaining: number; isArchived: boolean; repeatsYearly: boolean; url: string;
+	id: string;
+	title: string;
+	date: string;
+	nextOccurrence: string;
+	daysRemaining: number;
+	isArchived: boolean;
+	repeatsYearly: boolean;
+	url: string;
 };
-type Snapshot = {
-  schemaVersion: number; generatedAt: string; bridgeToken: string;
-  tasks: HubTask[]; countdowns: HubCountdown[];
-  lastRequest?: { id: string; success: boolean; error?: string };
+export type HubSnapshot = {
+	schemaVersion: number;
+	generatedAt: string;
+	bridgeToken: string;
+	tasks: HubTask[];
+	countdowns: HubCountdown[];
+	lastRequest?: { id: string; success: boolean; error?: string };
 };
 export function hubURL(route: string, values: Record<string, string>): string {
-  return `studenthub://${route}?${Object.entries(values).map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join("&")}`;
+	return `studenthub://${route}?${Object.entries(values)
+		.map(
+			([key, value]) =>
+				`${encodeURIComponent(key)}=${encodeURIComponent(value)}`,
+		)
+		.join("&")}`;
 }
 
-class StudentHub {
-  snapshot: Snapshot | null = null;
-  error = "";
-  pendingID = "";
-  editing = false;
-  private lastJSON = "";
-  private timer: ReturnType<typeof setInterval> | undefined;
-  private timeout: ReturnType<typeof setTimeout> | undefined;
-  constructor() { makeAutoObservable(this, {}, { autoBind: true }); }
-  get tasks() { return this.snapshot?.tasks ?? []; }
-  get countdowns() { return this.snapshot?.countdowns.filter(item => !item.isArchived) ?? []; }
-  refresh() {
-    const path = `/Users/${solNative.userName()}/Library/Application Support/StudentHub/Integrations/sol.json`;
-    try {
-      if (!solNative.exists(path)) { this.snapshot = null; return; }
-      const raw = solNative.readFile(path);
-      if (!raw || raw === this.lastJSON) return;
-      const data = JSON.parse(raw) as Snapshot;
-      if (data.schemaVersion !== 1 || !Array.isArray(data.tasks) || !Array.isArray(data.countdowns)) throw new Error("Unsupported Student Hub snapshot");
-      this.snapshot = data;
-      this.lastJSON = raw;
-      if (data.lastRequest?.id === this.pendingID) {
-        this.error = data.lastRequest.success ? "" : data.lastRequest.error ?? "Student Hub could not save this change.";
-        this.pendingID = "";
-        if (this.timeout) clearTimeout(this.timeout);
-      }
-    } catch { this.error = "Could not read Student Hub. Open it and try Refresh."; }
-  }
-  async requestRefresh() {
-    this.refresh();
-    if (this.snapshot?.bridgeToken) {
-      try { await solNative.openStudentHubURL(hubURL("sol-refresh", { token: this.snapshot.bridgeToken })); } catch { this.error = "Could not refresh Student Hub."; }
-    } else {
-      try { await solNative.openStudentHubURL("studenthub://tasks"); } catch { this.error = "Could not open Student Hub."; }
-    }
-  }
-  start() { this.refresh(); if (!this.timer) this.timer = setInterval(this.refresh, 800); }
-  stop() { if (this.timer) clearInterval(this.timer); this.timer = undefined; if (this.timeout) clearTimeout(this.timeout); }
-  async capture(text: string) {
-    try { await Linking.openURL(hubURL("quick-command", { text })); }
-    catch { this.error = "Could not open Student Hub."; }
-  }
-  async mutate(action: "create" | "update" | "complete" | "delete", task: HubTask | null, values: Record<string, string> = {}) {
-    if (this.pendingID) return false;
-    this.refresh();
-    if (!this.snapshot?.bridgeToken) { this.error = "Open Student Hub to connect first."; return false; }
-    const requestID = uuid();
-    this.pendingID = requestID;
-    this.error = "";
-    this.timeout = setTimeout(() => runInAction(() => {
-      if (this.pendingID === requestID) { this.pendingID = ""; this.error = "Student Hub has not confirmed the change. Refresh before trying again."; }
-    }), 15000);
-    try {
-      await solNative.openStudentHubURL(hubURL("sol-task", { action, ...(task ? { id: task.id } : {}), requestID, token: this.snapshot.bridgeToken, ...values }));
-      return true;
-    } catch {
-      runInAction(() => { this.pendingID = ""; this.error = "Could not send the change to Student Hub."; });
-      return false;
-    }
-  }
+export function parseHubDate(value: string): Date | null {
+	const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+	const date = dateOnly
+		? new Date(
+				Number(dateOnly[1]),
+				Number(dateOnly[2]) - 1,
+				Number(dateOnly[3]),
+			)
+		: new Date(value);
+	if (!Number.isFinite(date.getTime())) return null;
+	if (
+		dateOnly &&
+		(date.getFullYear() !== Number(dateOnly[1]) ||
+			date.getMonth() !== Number(dateOnly[2]) - 1 ||
+			date.getDate() !== Number(dateOnly[3]))
+	)
+		return null;
+	return date;
+}
+function dayOrdinal(date: Date): number {
+	return (
+		Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000
+	);
+}
+export function formatHubTaskDue(
+	task: Pick<HubTask, "dueDate" | "includesDueTime">,
+	now = new Date(),
+): string {
+	const date = task.dueDate ? parseHubDate(task.dueDate) : null;
+	if (!date) return "No deadline";
+	const difference = dayOrdinal(date) - dayOrdinal(now);
+	const day =
+		difference === 0
+			? "Today"
+			: difference === 1
+				? "Tomorrow"
+				: difference === -1
+					? "Yesterday"
+					: date.toLocaleDateString(undefined, {
+							month: "short",
+							day: "numeric",
+							...(date.getFullYear() !== now.getFullYear()
+								? { year: "numeric" }
+								: {}),
+						});
+	return task.includesDueTime
+		? `${day} · ${date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`
+		: day;
+}
+export function countdownDays(item: HubCountdown, now = new Date()): number {
+	const date = parseHubDate(item.nextOccurrence);
+	if (!date) return item.daysRemaining;
+	let target = date;
+	if (
+		item.repeatsYearly &&
+		!item.isArchived &&
+		dayOrdinal(target) < dayOrdinal(now)
+	) {
+		const month = target.getMonth();
+		const day = target.getDate();
+		const occurrence = (year: number) =>
+			new Date(
+				year,
+				month,
+				Math.min(day, new Date(year, month + 1, 0).getDate()),
+			);
+		target = occurrence(now.getFullYear());
+		if (dayOrdinal(target) < dayOrdinal(now))
+			target = occurrence(now.getFullYear() + 1);
+	}
+	return dayOrdinal(target) - dayOrdinal(now);
+}
+
+function record(value: unknown): value is Record<string, unknown> {
+	return !!value && typeof value === "object" && !Array.isArray(value);
+}
+function localLink(value: unknown): value is string {
+	return typeof value === "string" && /^studenthub:\/\//i.test(value);
+}
+export function decodeHubSnapshot(input: unknown): HubSnapshot {
+	if (
+		!record(input) ||
+		input.schemaVersion !== 1 ||
+		typeof input.generatedAt !== "string" ||
+		!parseHubDate(input.generatedAt) ||
+		typeof input.bridgeToken !== "string" ||
+		!input.bridgeToken ||
+		!Array.isArray(input.tasks) ||
+		!Array.isArray(input.countdowns)
+	)
+		throw new Error("Unsupported Student Hub snapshot");
+	for (const task of input.tasks) {
+		if (
+			!record(task) ||
+			![task.id, task.title, task.details, task.course].every(
+				(value) => typeof value === "string",
+			) ||
+			typeof task.includesDueTime !== "boolean" ||
+			typeof task.isCompleted !== "boolean" ||
+			!localLink(task.url) ||
+			(task.dueDate != null &&
+				(typeof task.dueDate !== "string" || !parseHubDate(task.dueDate)))
+		)
+			throw new Error("Invalid Student Hub task");
+	}
+	for (const item of input.countdowns) {
+		if (
+			!record(item) ||
+			![item.id, item.title].every((value) => typeof value === "string") ||
+			typeof item.date !== "string" ||
+			!parseHubDate(item.date) ||
+			typeof item.nextOccurrence !== "string" ||
+			!parseHubDate(item.nextOccurrence) ||
+			typeof item.daysRemaining !== "number" ||
+			!Number.isFinite(item.daysRemaining) ||
+			typeof item.isArchived !== "boolean" ||
+			typeof item.repeatsYearly !== "boolean" ||
+			!localLink(item.url)
+		)
+			throw new Error("Invalid Student Hub countdown");
+	}
+	if (
+		input.lastRequest != null &&
+		(!record(input.lastRequest) ||
+			typeof input.lastRequest.id !== "string" ||
+			typeof input.lastRequest.success !== "boolean" ||
+			(input.lastRequest.error != null &&
+				typeof input.lastRequest.error !== "string"))
+	)
+		throw new Error("Invalid Student Hub response");
+	return input as HubSnapshot;
+}
+
+export class StudentHub {
+	snapshot: HubSnapshot | null = null;
+	error = "";
+	pendingID = "";
+	editing = false;
+	now = Date.now();
+	private lastJSON = "";
+	private snapshotReadError = false;
+	private timer: ReturnType<typeof setInterval> | undefined;
+	private timeout: ReturnType<typeof setTimeout> | undefined;
+	private pendingResolve: ((success: boolean) => void) | undefined;
+	constructor(private requestTimeoutMs = 15000) {
+		makeAutoObservable(this, {}, { autoBind: true });
+	}
+	get tasks() {
+		return this.snapshot?.tasks ?? [];
+	}
+	get countdowns() {
+		return this.snapshot?.countdowns.filter((item) => !item.isArchived) ?? [];
+	}
+	get snapshotAgeMinutes() {
+		return this.snapshot
+			? Math.max(
+					0,
+					Math.floor(
+						(this.now - new Date(this.snapshot.generatedAt).getTime()) / 60000,
+					),
+				)
+			: 0;
+	}
+	private finishRequest(success: boolean, error = "") {
+		const resolve = this.pendingResolve;
+		this.pendingID = "";
+		this.pendingResolve = undefined;
+		if (this.timeout != null) clearTimeout(this.timeout);
+		this.timeout = undefined;
+		this.error = error;
+		resolve?.(success);
+	}
+	refresh() {
+		this.now = Math.floor(Date.now() / 60000) * 60000;
+		const path = `/Users/${solNative.userName()}/Library/Application Support/StudentHub/Integrations/sol.json`;
+		try {
+			if (!solNative.exists(path)) {
+				this.snapshot = null;
+				this.lastJSON = "";
+				return;
+			}
+			const raw = solNative.readFile(path);
+			if (!raw) {
+				this.snapshot = null;
+				this.lastJSON = "";
+				return;
+			}
+			if (raw !== this.lastJSON) {
+				this.snapshot = decodeHubSnapshot(JSON.parse(raw));
+				this.lastJSON = raw;
+			}
+			if (this.snapshotReadError) {
+				this.error = "";
+				this.snapshotReadError = false;
+			}
+			const response = this.snapshot?.lastRequest;
+			if (
+				this.pendingID &&
+				response?.id.toLowerCase() === this.pendingID.toLowerCase()
+			) {
+				this.finishRequest(
+					response.success,
+					response.success
+						? ""
+						: (response.error ?? "Student Hub could not save this change."),
+				);
+			}
+		} catch {
+			this.snapshotReadError = true;
+			this.error =
+				"Could not read Student Hub. Showing the last snapshot; open it and try Refresh.";
+		}
+	}
+	async requestRefresh() {
+		this.refresh();
+		try {
+			await solNative.openStudentHubURL(
+				this.snapshot?.bridgeToken
+					? hubURL("sol-refresh", { token: this.snapshot.bridgeToken })
+					: "studenthub://tasks",
+			);
+			this.refresh();
+		} catch {
+			runInAction(() => {
+				this.error = "Could not refresh Student Hub.";
+			});
+		}
+	}
+	start() {
+		this.refresh();
+		if (this.timer == null) this.timer = setInterval(this.refresh, 800);
+	}
+	stop() {
+		if (this.timer != null) clearInterval(this.timer);
+		this.timer = undefined;
+		if (this.pendingID)
+			this.finishRequest(
+				false,
+				"Change not confirmed. Refresh Student Hub before trying again.",
+			);
+	}
+	async capture(text: string) {
+		if (!text.trim() || text.length > 10000) {
+			this.error = "Enter a task command up to 10,000 characters.";
+			return;
+		}
+		try {
+			await Linking.openURL(hubURL("quick-command", { text }));
+		} catch {
+			runInAction(() => {
+				this.error = "Could not open Student Hub.";
+			});
+		}
+	}
+	async mutate(
+		action: "create" | "update" | "complete" | "delete",
+		task: HubTask | null,
+		values: Record<string, string> = {},
+	): Promise<boolean> {
+		if (this.pendingID) return false;
+		this.refresh();
+		if (!this.snapshot?.bridgeToken) {
+			this.error = "Open Student Hub to connect first.";
+			return false;
+		}
+		if (
+			task &&
+			!this.tasks.some(
+				(item) => item.id.toLowerCase() === task.id.toLowerCase(),
+			)
+		) {
+			this.error = "This task no longer exists. Refresh and try again.";
+			return false;
+		}
+		const requestID = uuid();
+		this.pendingID = requestID;
+		this.error = "";
+		const confirmation = new Promise<boolean>((resolve) => {
+			this.pendingResolve = resolve;
+		});
+		this.timeout = setTimeout(
+			() =>
+				runInAction(() => {
+					if (this.pendingID === requestID)
+						this.finishRequest(
+							false,
+							"Student Hub has not confirmed the change. Refresh before trying again.",
+						);
+				}),
+			this.requestTimeoutMs,
+		);
+		try {
+			await solNative.openStudentHubURL(
+				hubURL("sol-task", {
+					...values,
+					action,
+					...(task ? { id: task.id } : {}),
+					requestID,
+					token: this.snapshot.bridgeToken,
+				}),
+			);
+			this.refresh();
+		} catch {
+			runInAction(() => {
+				if (this.pendingID === requestID)
+					this.finishRequest(
+						false,
+						"Could not send the change to Student Hub.",
+					);
+			});
+		}
+		return confirmation;
+	}
 }
 export const studentHub = new StudentHub();

@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+"""Local Sol launcher and Student Hub quick-command terminal entry point."""
+import json
+from pathlib import Path
+import subprocess
+import sys
+import unicodedata
+from urllib.parse import urlencode
+
+
+def safe_text(value):
+    return " ".join("".join(c for c in str(value) if not unicodedata.category(c).startswith("C")).split())
+
+
+def main(args):
+    if not args:
+        subprocess.run(["/usr/bin/open", "-a", "/Applications/Sol.app"], check=True)
+        return
+    if args == ["--help"] or args == ["-h"]:
+        print('Usage: sol ["Math Homework from Class tmr 10AM" | --tasks | --help]')
+        print("No arguments opens Sol. A command opens Student Hub's local preview for confirmation.")
+        return
+    if args == ["--tasks"]:
+        path = Path.home() / "Library/Application Support/StudentHub/Integrations/sol.json"
+        try:
+            data = json.loads(path.read_text())
+            if data.get("schemaVersion") != 1 or not isinstance(data.get("tasks"), list):
+                raise ValueError("Unsupported snapshot")
+            # The bridge token never appears in terminal output.
+            for task in data["tasks"]:
+                if not isinstance(task, dict) or not isinstance(task.get("title"), str):
+                    raise ValueError("Invalid task")
+                if task.get("isCompleted"):
+                    continue
+                title = safe_text(task["title"])
+                course = safe_text(task.get("course", ""))
+                due = safe_text(task.get("dueDate") or "No deadline")
+                print(f"[ ] {title}" + (f" · {course}" if course else "") + f" · {due}")
+        except (OSError, ValueError, TypeError):
+            raise SystemExit("No readable local Student Hub snapshot. Open Student Hub, then try again.")
+        return
+    if args[0].startswith("--"):
+        raise SystemExit("Unknown option. Run sol --help.")
+    text = " ".join(args)
+    if not text.strip() or len(text) > 10000:
+        raise SystemExit("Enter a task command up to 10,000 characters.")
+    # Explicitly target the installed local app. No shell interpolation or network.
+    url = "studenthub://quick-command?" + urlencode({"text": text})
+    subprocess.run(["/usr/bin/open", "-a", "/Applications/StudentHub.app", url], check=True)
+
+
+if __name__ == "__main__":
+    try:
+        main(sys.argv[1:])
+    except subprocess.CalledProcessError:
+        raise SystemExit("Could not open the local app. Check it is installed in /Applications.")
