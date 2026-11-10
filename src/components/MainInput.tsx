@@ -13,10 +13,11 @@ type Props = {
 	style?: any;
 	className?: string;
 	hideIcon?: boolean;
+	editable?: boolean;
 };
 
 export const MainInput = observer<Props>(
-	({ placeholder = "Search your mac...", showBackButton, hideIcon }) => {
+	({ placeholder = "Search your mac...", showBackButton, hideIcon, editable = true }) => {
 		const store = useStore();
 		const isDarkMode = store.ui.isDarkMode;
 		const reloadApp = async () => {
@@ -54,6 +55,7 @@ export const MainInput = observer<Props>(
 			<View className="min-h-[42px] flex-row items-center gap-2 my-1 flex-1 px-2">
 				{leftButton}
 				<TextInput
+					editable={editable}
 					autoFocus
 					enableFocusRing={false}
 					value={store.ui.query}

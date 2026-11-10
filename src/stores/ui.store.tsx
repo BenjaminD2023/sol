@@ -994,7 +994,8 @@ export const createUIStore = (root: IRootStore) => {
 				return;
 			}
 
-			// store.getApps()
+			if (store.focusedWidget === Widget.SEARCH && !studentHub.editing) store.setQuery("");
+			void studentHub.requestRefresh();
 
 			setImmediate(() => {
 				if (!store.isAccessibilityTrusted) {

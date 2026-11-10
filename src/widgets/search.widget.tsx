@@ -326,7 +326,8 @@ export const SearchWidget: FC = observer(() => {
 			})}
 		>
 			<View className="flex-row items-center gap-2 px-3">
-				<MainInput className="flex-1" hideIcon placeholder="Search apps, files, conversions, or capture a task…" />
+				<MainInput className="flex-1" hideIcon editable={!studentHub.editing} placeholder="Search apps, files, conversions, or capture a task…" />
+				<TouchableOpacity accessibilityRole="button" accessibilityLabel="Settings" disabled={studentHub.editing} onPress={store.ui.showSettings} className="p-2"><Text className="text-lg darker-text">⚙</Text></TouchableOpacity>
 			</View>
 
 			{!store.ui.query && <StudentHubDashboard />}

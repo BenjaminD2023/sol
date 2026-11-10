@@ -31,7 +31,7 @@ Permissions may require a new grant if the signing identity changes or expires.
 ## Local tasks
 
 Cmd-Space opens the task dashboard. Click a task or Edit to rename it, change
-its details or reschedule it using natural dates. “clear” removes the due date.
+its details or reschedule it using natural dates.
 Checkboxes complete/reopen tasks. Delete requires a second click.
 Type a task above and select “Create task” to confirm creation, or use
 “Review task in Hub” for Student Hub's full draft preview.
