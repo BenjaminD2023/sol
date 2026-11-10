@@ -2,6 +2,10 @@ import * as Sentry from "@sentry/react-native";
 import { Assets } from "assets";
 import { Parser } from "expr-eval";
 import { CONSTANTS } from "lib/constants";
+import {
+	fetchCurrencyConversion,
+	parseCurrencyConversion,
+} from "lib/conversions";
 import type { EmojiSkinTone } from "lib/emojiSkinTones";
 import { normalizeEmojiSkinTone } from "lib/emojiSkinTones";
 import { solNative } from "lib/SolNative";
@@ -60,6 +64,8 @@ let onAppsChangedListener: EmitterSubscription | undefined;
 let appareanceListener: NativeEventSubscription | undefined;
 let bookmarksDisposer: IReactionDisposer | undefined;
 let configDisposer: IReactionDisposer | undefined;
+let currencyTimer: ReturnType<typeof setTimeout> | undefined;
+let currencyController: AbortController | undefined;
 
 export enum Widget {
 	ONBOARDING = "ONBOARDING",
@@ -730,6 +736,8 @@ export const createUIStore = (root: IRootStore) => {
 			store.focusedWidget = widget;
 		},
 		setQuery: (query: string) => {
+			if (currencyTimer != null) clearTimeout(currencyTimer);
+			currencyController?.abort();
 			store.query = query.replace("\n", " ");
 			store.selectedIndex = 0;
 			store.temporaryResult = null;
@@ -748,6 +756,48 @@ export const createUIStore = (root: IRootStore) => {
 				const unitResult = parseUnitConversion(store.query);
 				if (unitResult != null) {
 					store.temporaryResult = unitResult;
+					return;
+				}
+
+				const currencyRequest = parseCurrencyConversion(store.query);
+				if (currencyRequest != null) {
+					const querySnapshot = store.query;
+					const controller = new AbortController();
+					currencyController = controller;
+					store.temporaryResult = createTextTemporaryResult(
+						"Looking up rate…",
+						"Currency conversion",
+					);
+					currencyTimer = setTimeout(() => {
+						const timeout = setTimeout(() => controller.abort(), 6000);
+						void fetchCurrencyConversion(currencyRequest, controller.signal)
+							.then((result) => {
+								if (
+									store.focusedWidget === Widget.SEARCH &&
+									store.query === querySnapshot &&
+									currencyController === controller
+								) {
+									runInAction(() => {
+										store.temporaryResult = result;
+									});
+								}
+							})
+							.catch(() => {
+								if (
+									store.focusedWidget === Widget.SEARCH &&
+									store.query === querySnapshot &&
+									currencyController === controller
+								) {
+									runInAction(() => {
+										store.temporaryResult = createTextTemporaryResult(
+											"Rate unavailable",
+											"Check your connection or currency pair",
+										);
+									});
+								}
+							})
+							.finally(() => clearTimeout(timeout));
+					}, 350);
 					return;
 				}
 
@@ -914,6 +964,8 @@ export const createUIStore = (root: IRootStore) => {
 			store.historyPointer = 0;
 		},
 		cleanUp: () => {
+			if (currencyTimer != null) clearTimeout(currencyTimer);
+			currencyController?.abort();
 			onShowListener?.remove();
 			onHideListener?.remove();
 			onFileSearchListener?.remove();

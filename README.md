@@ -55,8 +55,32 @@ https://discord.gg/W9XmqCQCKP
 - Forward media keys to Spotify/Apple Music
 - Blacken Menu Bar
 - Quickly evaluate math operations
+- Convert units offline and currencies using dated reference rates
 - Script Runner
 - Symbolic Link Support
+
+## Conversions
+
+Type an amount, a source unit, `to` or `in`, and a target unit in the launcher.
+For example: `5 feet to cm`, `2.5 kg in pounds`, `-40 °C to °F`, `1 m² to cm²`,
+`36 km/h to m/s`, or `1 MB to b`. Unit conversions work offline. Symbols retain
+their capitalization (`b` is bits, `B` is bytes, `mW` and `MW` differ).
+Digital prefixes follow convert-units' binary factors (1 KB = 1024 B).
+Use a decimal point and optional thousands grouping (`1,000.5`); scientific
+notation is supported. Results retain up to 12 significant digits.
+
+Currency examples include `100 USD to CNY`, `25 EUR in GBP`, and `$25 to EUR`.
+Use ISO currency codes to avoid ambiguous symbols: `$` defaults to USD, `¥` to
+JPY, `£` to GBP, and `yuan`/`RMB` to CNY. Frankfurter supplies reference rates;
+the result shows the rate date and is not a live trading quote.
+Only a recognized, explicit currency conversion triggers a rate request, after
+a short typing delay. Only the currency pair leaves the device; amounts and
+full search queries stay local. Rates are cached for six hours during the app
+session. An older cached rate remains usable after a network failure and is
+marked as cached/offline. Without a cached rate, Sol shows `Rate unavailable`.
+Press Return on a conversion result to copy it with its units and rate date.
+
+Rate API documentation: [Frankfurter](https://frankfurter.dev/).
 
 ## Emoji compatibility
 
