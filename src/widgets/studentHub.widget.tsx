@@ -71,7 +71,7 @@ const TaskEditor = observer(
 			"text p-3 rounded-lg border border-lightBorder dark:border-darkBorder";
 		return (
 			<View className="absolute top-0 bottom-0 left-0 right-0 bg-black/70 items-center justify-center p-6">
-				<View className="bg-white dark:bg-neutral-900 rounded-xl p-5 gap-3 w-full">
+				<ScrollView className="bg-white dark:bg-neutral-900 rounded-xl w-full" style={{ maxHeight: "100%", flexGrow: 0 }} contentContainerStyle={{ padding: 20, gap: 12 }}>
 					<Text className="text-lg font-semibold text">Edit task</Text>
 					<TextInput
 						accessibilityLabel="Task title"
@@ -156,7 +156,7 @@ const TaskEditor = observer(
 							}}
 						/>
 					</View>
-				</View>
+				</ScrollView>
 			</View>
 		);
 	},
@@ -194,8 +194,8 @@ export const StudentHubDashboard = observer(() => {
 			{studentHub.snapshot ? (
 				<Text className="px-4 pb-2 text-xs darker-text">
 					{studentHub.snapshotAgeMinutes < 1
-						? "Local snapshot updated just now"
-						: `Local snapshot updated ${studentHub.snapshotAgeMinutes} min ago · Refresh for latest changes`}
+						? "Updated just now"
+						: `Updated ${studentHub.snapshotAgeMinutes} min ago · Refresh for latest changes`}
 				</Text>
 			) : null}
 			{studentHub.error ? (

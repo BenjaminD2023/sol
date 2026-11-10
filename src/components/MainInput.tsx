@@ -1,5 +1,6 @@
 import { Assets } from "assets";
 import clsx from "clsx";
+import { useEffect, useRef } from "react";
 import { observer } from "mobx-react-lite";
 import { DevSettings, Image, Text, TouchableOpacity, View } from "react-native";
 import { TextInput } from "react-native-macos";
@@ -18,6 +19,8 @@ type Props = {
 
 export const MainInput = observer<Props>(
 	({ placeholder = "Search your mac...", showBackButton, hideIcon, editable = true }) => {
+		const inputRef = useRef<TextInput>(null);
+		useEffect(() => { if (editable) inputRef.current?.focus(); }, [editable]);
 		const store = useStore();
 		const isDarkMode = store.ui.isDarkMode;
 		const reloadApp = async () => {
@@ -55,6 +58,7 @@ export const MainInput = observer<Props>(
 			<View className="min-h-[42px] flex-row items-center gap-2 my-1 flex-1 px-2">
 				{leftButton}
 				<TextInput
+					ref={inputRef}
 					editable={editable}
 					autoFocus
 					enableFocusRing={false}
