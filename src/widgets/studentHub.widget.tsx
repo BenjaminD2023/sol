@@ -12,6 +12,7 @@ import { solNative } from "lib/SolNative";
 import {
 	studentHub,
 	formatHubTaskDue,
+	formatHubTaskSchedule,
 	countdownDays,
 	type HubTask,
 } from "lib/studentHub";
@@ -270,6 +271,11 @@ export const StudentHubDashboard = observer(() => {
 										.filter(Boolean)
 										.join(" · ")}
 								</Text>
+								{formatHubTaskSchedule(task, new Date(studentHub.now)).map((time, index) => (
+									<Text key={task.scheduledTimes?.[index].id ?? time} className="text-xs darker-text mt-1">
+										{time}
+									</Text>
+								))}
 							</TouchableOpacity>
 							<Button title="Edit" onPress={() => setEditingTask(task)} />
 						</View>

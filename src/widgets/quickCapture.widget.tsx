@@ -226,6 +226,13 @@ export const QuickCaptureWidget = observer(
 							setPreview(null);
 							setInput(value);
 						}}
+						onSubmitEditing={
+							kind === "capture"
+								? undefined
+								: () => {
+										void save();
+									}
+						}
 						placeholder={
 							kind === "todo"
 								? "Math Homework from Class tmr 10AM"
@@ -310,6 +317,9 @@ export const QuickCaptureWidget = observer(
 										editable={!pending}
 										value={title}
 										onChangeText={setTitle}
+										onSubmitEditing={() => {
+											void save();
+										}}
 										className={fieldClass}
 									/>
 									<View className="flex-row gap-3 flex-wrap">

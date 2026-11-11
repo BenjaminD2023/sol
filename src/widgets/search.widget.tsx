@@ -7,7 +7,7 @@ import { Key } from "components/Key";
 import { LoadingBar } from "components/LoadingBar";
 import { MainInput } from "components/MainInput";
 import { StudentHubDashboard } from "./studentHub.widget";
-import { studentHub } from "lib/studentHub";
+import { studentHub, formatHubTaskDue } from "lib/studentHub";
 import { renderToKeys } from "lib/shortcuts";
 import { solNative } from "lib/SolNative";
 import { observer } from "mobx-react-lite";
@@ -320,12 +320,73 @@ const EmptyComponent = () => {
 	);
 };
 
+const TaskCapturePreview = observer(() => {
+	const { ui } = useStore();
+	const capture = ui.taskCapture;
+	const preview = capture.preview;
+	return (
+		<ScrollView
+			accessibilityLabel="Task preview"
+			className="border-l border-color p-4"
+			style={{ width: "48%" }}
+			contentContainerStyle={{ gap: 14, paddingBottom: 24 }}
+		>
+			<Text className="text-lg font-semibold text">
+				{preview?.title || "Task preview"}
+			</Text>
+			{preview?.success ? (
+				<>
+					<Text className="text-sm text">
+						Space · {preview.course || "No space"}
+					</Text>
+					<Text className="text-sm text">
+						Due ·{" "}
+						{formatHubTaskDue({
+							dueDate: preview.dueDate,
+							includesDueTime: preview.includesDueTime ?? false,
+						})}
+					</Text>
+					{preview.details ? (
+						<Text className="text-sm darker-text">{preview.details}</Text>
+					) : null}
+				</>
+			) : null}
+			{capture.loading ? (
+				<Text className="text-sm darker-text">
+					Interpreting in Student Hub…
+				</Text>
+			) : null}
+			{capture.saving ? (
+				<Text className="text-sm darker-text">
+					{capture.loading
+						? "Your task will be added when the preview is ready…"
+						: "Saving in Student Hub…"}
+				</Text>
+			) : null}
+			{capture.error ? (
+				<Text accessibilityRole="alert" className="text-sm text-red-500">
+					{capture.error}
+				</Text>
+			) : null}
+			{!capture.saving ? (
+				<Text className="text-xs darker-text">
+					Press Enter to add this task.
+				</Text>
+			) : null}
+		</ScrollView>
+	);
+});
+
 export const SearchWidget: FC = observer(() => {
 	const store = useStore();
 	const focused = store.ui.focusedWidget === Widget.SEARCH;
 	const selectedIndex = store.ui.selectedIndex;
 	const listRef = useRef<LegendListRef | null>(null);
 	const items = store.ui.searchItems;
+	const taskSelected =
+		["studenthub-create", "quick-command-todo"].includes(
+			store.ui.currentItem?.id ?? "",
+		) && !!store.ui.taskCapture.text;
 
 	useEffect(() => {
 		if (focused && items.length && selectedIndex < items.length) {
@@ -339,26 +400,42 @@ export const SearchWidget: FC = observer(() => {
 	return (
 		<View className="flex-1" style={{ minHeight: 0 }}>
 			<View className="flex-row items-center gap-2 px-3">
-				<MainInput className="flex-1" hideIcon editable={!studentHub.editing} placeholder="Search apps, files, or type / for Student Hub commands…" />
-				<TouchableOpacity accessibilityRole="button" accessibilityLabel="Settings" disabled={studentHub.editing} onPress={store.ui.showSettings} className="p-2"><Text className="text-lg darker-text">⚙</Text></TouchableOpacity>
+				<MainInput
+					className="flex-1"
+					hideIcon
+					editable={!studentHub.editing}
+					placeholder="Search apps, files, or type / for Student Hub commands…"
+				/>
+				<TouchableOpacity
+					accessibilityRole="button"
+					accessibilityLabel="Settings"
+					disabled={studentHub.editing || store.ui.taskCapture.saving}
+					onPress={store.ui.showSettings}
+					className="p-2"
+				>
+					<Text className="text-lg darker-text">⚙</Text>
+				</TouchableOpacity>
 			</View>
 
 			{!store.ui.query && <StudentHubDashboard />}
 			{!!store.ui.query && (
 				<>
 					<LoadingBar />
-					<LegendList
-						style={STYLES.list}
-						contentContainerStyle={STYLES.contentContainer}
-						ref={listRef}
-						data={items}
-						keyExtractor={(item) => item.id}
-						renderItem={ItemRow}
-						showsVerticalScrollIndicator={false}
-						ListEmptyComponent={EmptyComponent}
-						recycleItems
-						maintainVisibleContentPosition={false}
-					/>
+					<View className="flex-row flex-1" style={{ minHeight: 0 }}>
+						<LegendList
+							style={STYLES.list}
+							contentContainerStyle={STYLES.contentContainer}
+							ref={listRef}
+							data={items}
+							keyExtractor={(item) => item.id}
+							renderItem={ItemRow}
+							showsVerticalScrollIndicator={false}
+							ListEmptyComponent={EmptyComponent}
+							recycleItems
+							maintainVisibleContentPosition={false}
+						/>
+						{taskSelected ? <TaskCapturePreview /> : null}
+					</View>
 
 					<View className="py-2 px-4 flex-row items-center justify-end gap-1 subBg border-t border-color">
 						{store.ui.currentItem?.type === ItemType.APPLICATION &&
@@ -385,10 +462,22 @@ export const SearchWidget: FC = observer(() => {
 								<View className="mx-2" />
 							</>
 						)}
-						<TouchableOpacity onPress={() => { void studentHub.capture(store.ui.query); }}>
+						<TouchableOpacity
+							onPress={() => {
+								void studentHub.capture(store.ui.query);
+							}}
+						>
 							<Text className="text-xs text-accent">Review in Student Hub</Text>
 						</TouchableOpacity>
-						{store.ui.currentItem?.type === ItemType.FILE && <><Text className="text-xs darker-text ml-2">Reveal in Finder</Text><Key symbol="⇧" /><Key symbol="⏎" /></>}
+						{store.ui.currentItem?.type === ItemType.FILE && (
+							<>
+								<Text className="text-xs darker-text ml-2">
+									Reveal in Finder
+								</Text>
+								<Key symbol="⇧" />
+								<Key symbol="⏎" />
+							</>
+						)}
 						{!!items.length && (
 							<>
 								<View className="mx-2" />
@@ -397,7 +486,11 @@ export const SearchWidget: FC = observer(() => {
 										"font-semibold": !!items.length,
 									})}
 								>
-									Select
+									{taskSelected
+										? store.ui.taskCapture.saving
+											? "Saving…"
+											: "Add todo"
+										: "Select"}
 								</Text>
 								<Key symbol={"⏎"} primary />
 							</>

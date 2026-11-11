@@ -15,6 +15,7 @@ export type HubTask = {
 	course: string;
 	dueDate?: string | null;
 	includesDueTime: boolean;
+	scheduledTimes?: { id: string; startDate: string; endDate: string }[];
 	isCompleted: boolean;
 	url: string;
 };
@@ -137,6 +138,26 @@ export function countdownDays(item: HubCountdown, now = new Date()): number {
 	return dayOrdinal(target) - dayOrdinal(now);
 }
 
+export function formatHubTaskSchedule(
+	task: Pick<HubTask, "scheduledTimes">,
+	now = new Date(),
+): string[] {
+	return (task.scheduledTimes ?? []).map(({ startDate, endDate }) => {
+		const start = parseHubDate(startDate)!;
+		const end = parseHubDate(endDate)!;
+		const day = (date: string) =>
+			formatHubTaskDue({ dueDate: date, includesDueTime: false }, now);
+		const time = (date: Date) =>
+			date.toLocaleTimeString(undefined, {
+				hour: "numeric",
+				minute: "2-digit",
+			});
+		return `Scheduled ${day(startDate)} · ${time(start)} – ${
+			dayOrdinal(start) === dayOrdinal(end) ? "" : `${day(endDate)} · `
+		}${time(end)}`;
+	});
+}
+
 function record(value: unknown): value is Record<string, unknown> {
 	return !!value && typeof value === "object" && !Array.isArray(value);
 }
@@ -165,7 +186,22 @@ export function decodeHubSnapshot(input: unknown): HubSnapshot {
 			typeof task.isCompleted !== "boolean" ||
 			!localLink(task.url) ||
 			(task.dueDate != null &&
-				(typeof task.dueDate !== "string" || !parseHubDate(task.dueDate)))
+				(typeof task.dueDate !== "string" || !parseHubDate(task.dueDate))) ||
+			(task.scheduledTimes != null &&
+				(!Array.isArray(task.scheduledTimes) ||
+					task.scheduledTimes.some((slot) => {
+						if (
+							!record(slot) ||
+							typeof slot.id !== "string" ||
+							!slot.id.trim() ||
+							typeof slot.startDate !== "string" ||
+							typeof slot.endDate !== "string"
+						)
+							return true;
+						const start = parseHubDate(slot.startDate);
+						const end = parseHubDate(slot.endDate);
+						return !start || !end || end.getTime() <= start.getTime();
+					})))
 		)
 			throw new Error("Invalid Student Hub task");
 	}

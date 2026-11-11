@@ -40,13 +40,25 @@ Permissions may require a new grant if the signing identity changes or expires.
 
 Cmd-Space opens the task dashboard. Click a task or Edit to rename it, change
 its details or reschedule it using natural dates.
+Task rows show deadlines and separately labeled scheduled sessions, including
+their actual dates, start/end times and sessions crossing midnight. The bridge
+exports optional `scheduledTimes` arrays from linked calendar blocks; legacy
+cached hours are never inferred from a task's deadline.
 Opening Sol reads the existing local snapshot without launching or sending
 refresh URLs to Student Hub. Student Hub continuously updates that snapshot.
 Student Hub's main macOS scene also reuses its existing window for explicit
 URL actions via `handlesExternalEvents` on `AppShellView`.
 Checkboxes complete/reopen tasks. Delete requires a second click.
-Type `/` to browse Student Hub's complete shared command catalog. `/todo`,
-`/capture`, and `/countdown` open inline drafts with explicit confirmation.
+Type `/` to browse Student Hub's complete shared command catalog. `/capture`
+and `/countdown` open inline drafts with explicit confirmation.
+Typing `/todo <task>` or selecting Add todo for natural-language input shows a
+live preview in Sol's main search. Normal Enter saves that task directly, using
+the exact previewed title, course and deadline, then returns to the dashboard.
+Enter during parsing waits for the current preview; repeated Enter does not
+create duplicate tasks. Search keeps keyboard focus after saving so another task
+can be typed immediately. Cmd/Shift-Enter retains the detailed review flow.
+The Add todo dashboard button opens the detailed draft; Enter in its command or
+title field also saves once parsing is complete.
 Enter on a partial command fills its name into Sol. Argument-taking commands
 stay in the search field until their text is supplied; suggestions never launch
 Student Hub by themselves.
@@ -82,11 +94,11 @@ translation, remote favicons, flight lookups, and automatic browser-search
 fallback are disabled. Sparkle update checks are the separate maintenance
 connection explicitly requested for this fork.
 
-## Verification status (2026-11-11)
+## Verification status (2026-11-12)
 
-Installed signed build 1008. TypeScript, 50 Bun tests, 4 terminal CLI tests,
+Installed signed build 1009. TypeScript, 59 Bun tests, 4 terminal CLI tests,
 native dictionary/shortcut/application-quit/file-search harnesses and Release
-build/signature checks passed. Student Hub's 55 targeted tests and disposable
+build/signature checks passed. Student Hub's 58 targeted tests and disposable
 live create/cleanup checks passed, preserving previewed dates and courses; all
 existing workspace records were unchanged. The 25 imported countdowns include 5 archived
 items; five truncated screenshot titles are stored as shown with notes.
@@ -100,7 +112,11 @@ in the installed Applications copy.
 Countdown category detection and selection were checked on screen in both
 installed apps, including Sol's Auto, manual category, and No category states.
 Student Hub's category build preserved both current Release workspace JSON files
-byte-for-byte. UI checks used canceled drafts and did not create records.
+byte-for-byte, as did the scheduled-session export build. Category UI checks used
+canceled drafts. Each keyboard capture check created exactly one temporary task
+with the previewed deadline and removed it with a matching bridge acknowledgment.
+The timed list entry and typing the next draft without clicking were checked on
+screen. All 143 original tasks and countdowns were unchanged after cleanup.
 The live catalog exports 20 canonical commands and 22 names including aliases.
 Specialized commands share Student Hub's existing Quick Command UI; their logic
 is not duplicated in Sol. The current UI checks resolved `/Applications/Sol.app`

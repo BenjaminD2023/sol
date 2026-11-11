@@ -1,4 +1,5 @@
 import { studentHub } from "lib/studentHub";
+import { LiveTaskCapture, taskCaptureText } from "lib/liveTaskCapture";
 import { parseQuickCommand, quickCommandItems } from "lib/quickCommands";
 import * as Sentry from "@sentry/react-native";
 import { Assets } from "assets";
@@ -168,6 +169,7 @@ export const createUIStore = (root: IRootStore) => {
 	let fileSearchRequestID = 0;
 	let fileSearchTimer: ReturnType<typeof setTimeout> | undefined;
 	let fileSearchDisposer: IReactionDisposer | undefined;
+	let taskCaptureDisposer: IReactionDisposer | undefined;
 
 	const getSelectionCount = (item: Pick<Item, "id" | "name">) => {
 		const countById = store.frequencies[item.id];
@@ -434,6 +436,7 @@ export const createUIStore = (root: IRootStore) => {
 	const baseItems = createBaseItems(root);
 
 	const store = makeAutoObservable({
+		taskCapture: new LiveTaskCapture(studentHub),
 		//    ____  _                              _     _
 		//   / __ \| |                            | |   | |
 		//  | |  | | |__  ___  ___ _ ____   ____ _| |__ | | ___  ___
@@ -577,7 +580,10 @@ export const createUIStore = (root: IRootStore) => {
 			}
 			const commandItems = quickCommandItems(store.query, studentHub.commands, {
 				complete: (text) => store.setQuery(text),
-				openDraft: (kind, text) => studentHub.openDraft(kind, text),
+				openDraft: (kind, text) => {
+					if (kind === "todo") void store.submitLiveTask();
+					else studentHub.openDraft(kind, text);
+				},
 				handoff: (text) => { void studentHub.capture(text); },
 			});
 			if (commandItems) return commandItems.map((item) => ({ ...item, type: ItemType.CONFIGURATION }));
@@ -610,13 +616,13 @@ export const createUIStore = (root: IRootStore) => {
 				: [];
 
 			const captureQuery = store.query;
-			const createTaskItems: Item[] = !store.temporaryResult && !/^define\s/i.test(captureQuery) && /\s/.test(captureQuery.trim()) ? [{
+			const createTaskItems: Item[] = !store.temporaryResult && taskCaptureText(captureQuery) ? [{
 				id: "studenthub-create", type: ItemType.CONFIGURATION,
-				name: `Review in Student Hub: ${captureQuery}`, icon: "☑",
+				name: `Add todo: ${captureQuery}`, icon: "☑",
 				preventClose: true,
-				callback: () => { void studentHub.capture(captureQuery); },
+				callback: () => { void store.submitLiveTask(); },
 			}] : [];
-			const taskIntent = /\b(task|todo|homework|assignment|tmr|tomorrow|today|due)\b/i.test(captureQuery);
+			const taskIntent = /\b(task|todo|homework|assignment|tmr|tomorrow|today|tonight|due|mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b|作业|作業|明天|今天|后天|後天|下周|下週/i.test(captureQuery);
 			const exactApps = results.filter(item => item.type === ItemType.APPLICATION && [item.name, item.localizedName].some(name => name?.toLowerCase() === captureQuery.toLowerCase()));
 			const finalResults: Item[] = [
 				...temporaryResultItems,
@@ -638,6 +644,17 @@ export const createUIStore = (root: IRootStore) => {
 		},
 		get currentItem(): Item | undefined {
 			return store.searchItems[store.selectedIndex];
+		},
+		submitLiveTask: async () => {
+			const query = store.query;
+			if (studentHub.pendingID || store.taskCapture.saving || store.temporaryResult) return;
+			store.taskCapture.setQuery(query);
+			if (await store.taskCapture.submit(query)) {
+				runInAction(() => {
+					if (store.query === query) store.setQuery("");
+				});
+				solNative.showToast("Task added to Student Hub", "success");
+			}
 		},
 		//                _   _
 		//      /\       | | (_)
@@ -1026,6 +1043,7 @@ export const createUIStore = (root: IRootStore) => {
 				store.focusWidget(Widget.SEARCH);
 				store.setQuery(query);
 				const command = parseQuickCommand(query);
+				if ((command?.kind === "todo" && command.text) || (!query.trim().startsWith("/") && taskCaptureText(query))) return;
 				if (command) studentHub.openDraft(command.kind, command.text);
 				else void studentHub.capture(query);
 				return;
@@ -1078,6 +1096,8 @@ export const createUIStore = (root: IRootStore) => {
 			store.historyPointer = 0;
 		},
 		cleanUp: () => {
+			taskCaptureDisposer?.();
+			store.taskCapture.stop();
 			if (currencyTimer != null) clearTimeout(currencyTimer);
 			currencyController?.abort();
 			if (dictionaryTimer != null) clearTimeout(dictionaryTimer);
@@ -1537,6 +1557,12 @@ export const createUIStore = (root: IRootStore) => {
 				void store.runFileSearch(query);
 			}, 150);
 		},
+	);
+
+	taskCaptureDisposer = reaction(
+		() => store.focusedWidget === Widget.SEARCH &&
+			!store.temporaryResult && !studentHub.editing ? store.query : "",
+		(query) => store.taskCapture.setQuery(query),
 	);
 
 	bookmarksDisposer = reaction(

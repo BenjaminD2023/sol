@@ -25,6 +25,7 @@ const {
 	StudentHub,
 	decodeHubSnapshot,
 	formatHubTaskDue,
+	formatHubTaskSchedule,
 	countdownDays,
 	hubURL,
 } = await import("./studentHub");
@@ -93,6 +94,44 @@ test("local refresh reconnects after its file disappears without opening Student
 	hub.refresh();
 	assert.equal(hub.tasks.length, 1);
 	assert.equal(requests.length, 0);
+});
+
+test("scheduled sessions keep their own dates and times separately from the deadline", () => {
+	const data = fixture();
+	const now = new Date(2026, 10, 12, 9);
+	const start = new Date(2026, 10, 12, 14, 30);
+	const end = new Date(2026, 10, 12, 15, 15);
+	const secondEnd = new Date(2026, 10, 13, 0, 30);
+	data.tasks[0].scheduledTimes = [
+		{
+			id: "session-1",
+			startDate: start.toISOString(),
+			endDate: end.toISOString(),
+		},
+		{
+			id: "session-2",
+			startDate: new Date(2026, 10, 12, 23, 30).toISOString(),
+			endDate: secondEnd.toISOString(),
+		},
+	];
+	const task = decodeHubSnapshot(data).tasks[0];
+	const time = (date) =>
+		date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+	assert.equal(
+		formatHubTaskSchedule(task, now)[0],
+		`Scheduled Today · ${time(start)} – ${time(end)}`,
+	);
+	assert.ok(
+		formatHubTaskSchedule(task, now)[1].includes(
+			`Tomorrow · ${time(secondEnd)}`,
+		),
+	);
+	assert.deepEqual(formatHubTaskSchedule({}, now), []);
+	assert.equal(task.dueDate, fixture().tasks[0].dueDate);
+	data.tasks[0].scheduledTimes[0].endDate = "not a date";
+	assert.throws(() => decodeHubSnapshot(data));
+	data.tasks[0].scheduledTimes[0].endDate = start.toISOString();
+	assert.throws(() => decodeHubSnapshot(data));
 });
 
 test("countdown category exports validate without breaking older snapshots", () => {
