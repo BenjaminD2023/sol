@@ -20,6 +20,10 @@ Applications path on future builds so macOS can retain permissions. Initial
 permission grants still require macOS user consent. Do not run the upstream
 `permissions:reset` script.
 
+Keep `/Applications/Sol.app` as the sole installed and running copy. Build
+products and backups stay outside Applications. Stop any copy launched from
+the build cache after UI testing, then leave the Applications copy running.
+
 After committing and verifying the installed app, run
 `scripts/local/publish-update.sh` to push this branch to the fork's
 `benjamin/local` branch and publish a signed Sparkle update on **BenjaminD2023/sol**.
@@ -38,6 +42,8 @@ Cmd-Space opens the task dashboard. Click a task or Edit to rename it, change
 its details or reschedule it using natural dates.
 Opening Sol reads the existing local snapshot without launching or sending
 refresh URLs to Student Hub. Student Hub continuously updates that snapshot.
+Student Hub's main macOS scene also reuses its existing window for explicit
+URL actions via `handlesExternalEvents` on `AppShellView`.
 Checkboxes complete/reopen tasks. Delete requires a second click.
 Type `/` to browse Student Hub's complete shared command catalog. `/todo`,
 `/capture`, and `/countdown` open inline drafts with explicit confirmation.
@@ -73,6 +79,9 @@ build/signature checks passed. Student Hub's 49 targeted tests and disposable
 live create/cleanup checks passed, preserving previewed dates and courses; all
 existing workspace records were unchanged. The 25 imported countdowns include 5 archived
 items; five truncated screenshot titles are stored as shown with notes.
+
+The window fix replayed 20 actual launcher-open callbacks with no Student Hub
+launch requests. Both installed application signatures passed strict checks.
 
 Dashboard spacing and the natural-language todo draft were checked on screen.
 The live catalog exports 20 canonical commands and 22 names including aliases.
