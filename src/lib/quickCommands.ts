@@ -61,3 +61,74 @@ export function matchingHubCommands(
 			) || item.detail.toLowerCase().includes(prefix.slice(1)),
 	);
 }
+
+type CommandItem = {
+	id: string;
+	name: string;
+	subName?: string;
+	icon: string;
+	preventClose: true;
+	callback: () => void;
+};
+
+type CommandActions = {
+	complete: (text: string) => void;
+	openDraft: (kind: QuickCommandKind, text: string) => void;
+	handoff: (text: string) => void;
+};
+
+// These callbacks are also used by the selected result's Enter handler. A
+// suggestion completes the input; only an entered command can perform an action.
+export function quickCommandItems(
+	query: string,
+	commands: HubCommand[],
+	actions: CommandActions,
+): CommandItem[] | null {
+	const command = parseQuickCommand(query);
+	if (command?.text)
+		return [
+			{
+				id: `quick-command-${command.kind}`,
+				name: `${quickCommandLabels[command.kind]}: ${command.text}`,
+				icon:
+					command.kind === "todo"
+						? "☑"
+						: command.kind === "capture"
+							? "✎"
+							: "◷",
+				preventClose: true,
+				callback: () => actions.openDraft(command.kind, command.text),
+			},
+		];
+	if (query.trim().startsWith("/") && commands.length) {
+		const exact = findHubCommand(query, commands);
+		if (exact && (!exact.takesArgument || /^\S+\s+\S/.test(query.trim())))
+			return [
+				{
+					id: `hub-command-${exact.id}`,
+					name: query.trim(),
+					subName: exact.detail,
+					icon: "⌘",
+					preventClose: true,
+					callback: () => actions.handoff(query),
+				},
+			];
+		return matchingHubCommands(query, commands).map((item) => ({
+			id: `hub-command-${item.id}`,
+			name: item.usage,
+			subName: item.detail,
+			icon: "⌘",
+			preventClose: true,
+			callback: () => actions.complete(item.insertionText),
+		}));
+	}
+	const suggestions = suggestedQuickCommands(query);
+	if (!suggestions.length) return null;
+	return suggestions.map((kind) => ({
+		id: `quick-command-${kind}`,
+		name: `/${kind} — ${quickCommandLabels[kind]}`,
+		icon: "⌘",
+		preventClose: true,
+		callback: () => actions.complete(`/${kind} `),
+	}));
+}

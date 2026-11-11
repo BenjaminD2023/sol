@@ -20,22 +20,28 @@ function Action({
 	onPress,
 	disabled = false,
 	selected = false,
+	radio = false,
 }: {
 	title: string;
 	onPress: () => void;
 	disabled?: boolean;
 	selected?: boolean;
+	radio?: boolean;
 }) {
 	return (
 		<TouchableOpacity
-			accessibilityRole="button"
+			accessibilityRole={radio ? "radio" : "button"}
 			accessibilityLabel={title}
+			accessibilityState={
+				radio ? { checked: selected, disabled } : { selected, disabled }
+			}
 			disabled={disabled}
 			onPress={onPress}
 			className="px-3 py-2 rounded-lg subBg"
-			style={{ opacity: disabled ? 0.4 : 1 }}
+			style={{ opacity: disabled ? 0.4 : 1, maxWidth: "100%" }}
 		>
 			<Text
+				numberOfLines={radio ? 1 : undefined}
 				className={
 					selected ? "text-accent font-semibold text-sm" : "text text-sm"
 				}
@@ -57,7 +63,19 @@ export const QuickCaptureWidget = observer(
 		const [title, setTitle] = useState("");
 		const [details, setDetails] = useState("");
 		const [yearly, setYearly] = useState(false);
+		// null follows detection; an empty string explicitly chooses no category.
+		const [categoryChoice, setCategoryChoice] = useState<string | null>(null);
 		const pending = !!studentHub.pendingID;
+		const categories = studentHub.countdownCategories;
+		const supportsCategories = studentHub.snapshot?.countdownCategories != null;
+		const categoryID = categoryChoice ?? preview?.categoryID ?? "";
+		const categoryMissing =
+			kind === "countdown" &&
+			supportsCategories &&
+			!!categoryID &&
+			!categories.some(
+				(category) => category.id.toLowerCase() === categoryID.toLowerCase(),
+			);
 		const fieldClass = "text p-3 rounded-lg border border-color";
 
 		useEffect(() => {
@@ -114,6 +132,7 @@ export const QuickCaptureWidget = observer(
 				!preview?.success ||
 				preview.kind !== kind ||
 				parsing ||
+				categoryMissing ||
 				!title.trim()
 			)
 				return;
@@ -130,6 +149,9 @@ export const QuickCaptureWidget = observer(
 						? { course: preview.courseID }
 						: {}),
 					...(kind === "countdown" ? { repeatsYearly: String(yearly) } : {}),
+					...(kind === "countdown" && supportsCategories
+						? { categoryID: categoryID || "none" }
+						: {}),
 				},
 			);
 			if (ok) {
@@ -143,6 +165,7 @@ export const QuickCaptureWidget = observer(
 				: !!preview?.success &&
 					preview.kind === kind &&
 					!!title.trim() &&
+					!categoryMissing &&
 					!parsing;
 
 		return (
@@ -161,7 +184,9 @@ export const QuickCaptureWidget = observer(
 									selected={kind === option}
 									disabled={pending}
 									onPress={() => {
+										if (option === kind) return;
 										setPreview(null);
+										setCategoryChoice(null);
 										setKind(option);
 									}}
 								/>
@@ -229,6 +254,49 @@ export const QuickCaptureWidget = observer(
 										? "Include an event name and date, such as “Exam tomorrow” or “Birthday Feb 5 yearly”."
 										: "Include a title, optional course, and date. Student Hub will interpret your draft below."}
 								</Text>
+							) : null}
+							{kind === "countdown" && supportsCategories ? (
+								<View className="gap-2">
+									<Text className="text-xs darker-text">Category</Text>
+									<View className="flex-row flex-wrap gap-2">
+										<Action
+											title={`Auto${preview?.categoryTitle ? `: ${preview.categoryTitle}` : ""}`}
+											radio
+											selected={categoryChoice === null}
+											disabled={pending}
+											onPress={() => setCategoryChoice(null)}
+										/>
+										<Action
+											title="No category"
+											radio
+											selected={categoryChoice === ""}
+											disabled={pending}
+											onPress={() => setCategoryChoice("")}
+										/>
+										{categories.map((category) => (
+											<Action
+												key={category.id}
+												title={category.title}
+												radio
+												selected={
+													categoryChoice?.toLowerCase() ===
+													category.id.toLowerCase()
+												}
+												disabled={pending}
+												onPress={() => setCategoryChoice(category.id)}
+											/>
+										))}
+									</View>
+									{categoryMissing ? (
+										<Text
+											accessibilityRole="alert"
+											className="text-xs text-red-500"
+										>
+											This category was removed. Choose another category or edit
+											the command to detect it again.
+										</Text>
+									) : null}
+								</View>
 							) : null}
 							{preview?.success ? (
 								<>

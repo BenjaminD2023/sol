@@ -28,6 +28,7 @@ export type HubCountdown = {
 	repeatsYearly: boolean;
 	url: string;
 };
+export type HubCountdownCategory = { id: string; title: string };
 export type HubCommandPreview = {
 	id: string;
 	success: boolean;
@@ -36,6 +37,8 @@ export type HubCommandPreview = {
 	details?: string;
 	course?: string;
 	courseID?: string;
+	categoryID?: string | null;
+	categoryTitle?: string | null;
 	dueDate?: string;
 	includesDueTime?: boolean;
 	repeatsYearly?: boolean;
@@ -50,6 +53,7 @@ export type HubSnapshot = {
 	lastRequest?: { id: string; success: boolean; error?: string };
 	lastPreview?: HubCommandPreview;
 	commands?: HubCommand[];
+	countdownCategories?: HubCountdownCategory[];
 };
 export function hubURL(route: string, values: Record<string, string>): string {
 	return `studenthub://${route}?${Object.entries(values)
@@ -190,6 +194,25 @@ export function decodeHubSnapshot(input: unknown): HubSnapshot {
 				typeof input.lastRequest.error !== "string"))
 	)
 		throw new Error("Invalid Student Hub response");
+	if (input.countdownCategories != null) {
+		if (
+			!Array.isArray(input.countdownCategories) ||
+			input.countdownCategories.some(
+				(category) =>
+					!record(category) ||
+					typeof category.id !== "string" ||
+					!category.id.trim() ||
+					typeof category.title !== "string" ||
+					!category.title.trim(),
+			)
+		)
+			throw new Error("Invalid Student Hub countdown categories");
+		const ids = input.countdownCategories.map((category) =>
+			category.id.toLowerCase(),
+		);
+		if (new Set(ids).size !== ids.length)
+			throw new Error("Duplicate Student Hub countdown category");
+	}
 	if (
 		input.commands != null &&
 		(!Array.isArray(input.commands) ||
@@ -224,6 +247,11 @@ export function decodeHubSnapshot(input: unknown): HubSnapshot {
 			!["todo", "countdown"].includes(preview.kind as string) ||
 			(preview.error != null && typeof preview.error !== "string") ||
 			(preview.courseID != null && typeof preview.courseID !== "string") ||
+			(preview.categoryID != null &&
+				(typeof preview.categoryID !== "string" ||
+					!preview.categoryID.trim())) ||
+			(preview.categoryTitle != null &&
+				typeof preview.categoryTitle !== "string") ||
 			(preview.success &&
 				(typeof preview.title !== "string" ||
 					typeof preview.details !== "string" ||
@@ -263,6 +291,9 @@ export class StudentHub {
 	}
 	get commands() {
 		return this.snapshot?.commands ?? [];
+	}
+	get countdownCategories() {
+		return this.snapshot?.countdownCategories ?? [];
 	}
 	get countdowns() {
 		const today = new Date(this.now);

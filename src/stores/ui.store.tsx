@@ -1,5 +1,5 @@
 import { studentHub } from "lib/studentHub";
-import { findHubCommand, matchingHubCommands, parseQuickCommand, quickCommandLabels, suggestedQuickCommands } from "lib/quickCommands";
+import { parseQuickCommand, quickCommandItems } from "lib/quickCommands";
 import * as Sentry from "@sentry/react-native";
 import { Assets } from "assets";
 import { Parser } from "expr-eval";
@@ -575,32 +575,12 @@ export const createUIStore = (root: IRootStore) => {
 			if (!store.query) {
 				return [...allItems].sort(compareRankedItems);
 			}
-			const command = parseQuickCommand(store.query);
-			if (command) return [{
-				id: `quick-command-${command.kind}`, type: ItemType.CONFIGURATION,
-				name: `${quickCommandLabels[command.kind]}${command.text ? `: ${command.text}` : "…"}`,
-				icon: command.kind === "todo" ? "☑" : command.kind === "capture" ? "✎" : "◷",
-				preventClose: true, callback: () => studentHub.openDraft(command.kind, command.text),
-			}];
-			if (store.query.trim().startsWith("/") && studentHub.commands.length) {
-				const exact = findHubCommand(store.query, studentHub.commands);
-				if (exact && (!exact.takesArgument || /\s/.test(store.query.trim()))) return [{
-					id: `hub-command-${exact.id}`, type: ItemType.CONFIGURATION,
-					name: store.query.trim(), subName: exact.detail, icon: "⌘", preventClose: true,
-					callback: () => { void studentHub.capture(store.query); },
-				}];
-				return matchingHubCommands(store.query, studentHub.commands).map((item) => ({
-					id: `hub-command-${item.id}`, type: ItemType.CONFIGURATION,
-					name: item.usage, subName: item.detail, icon: "⌘", preventClose: true,
-					callback: () => { void studentHub.capture(item.insertionText); },
-				}));
-			}
-			const commandSuggestions = suggestedQuickCommands(store.query);
-			if (commandSuggestions.length) return commandSuggestions.map((kind) => ({
-				id: `quick-command-${kind}`, type: ItemType.CONFIGURATION,
-				name: `/${kind} — ${quickCommandLabels[kind]}`, icon: "⌘", preventClose: true,
-				callback: () => studentHub.openDraft(kind),
-			}));
+			const commandItems = quickCommandItems(store.query, studentHub.commands, {
+				complete: (text) => store.setQuery(text),
+				openDraft: (kind, text) => studentHub.openDraft(kind, text),
+				handoff: (text) => { void studentHub.capture(text); },
+			});
+			if (commandItems) return commandItems.map((item) => ({ ...item, type: ItemType.CONFIGURATION }));
 
 			if (minisearch.documentCount === 0) {
 				minisearch.addAll(allItems);

@@ -95,6 +95,71 @@ test("local refresh reconnects after its file disappears without opening Student
 	assert.equal(requests.length, 0);
 });
 
+test("countdown category exports validate without breaking older snapshots", () => {
+	reset();
+	const hub = new StudentHub();
+	hub.refresh();
+	assert.deepEqual(hub.countdownCategories, []);
+	const data = fixture();
+	const id = "A25FB612-F82E-4C8B-A6CC-A30801665380";
+	data.countdownCategories = [{ id, title: "School" }];
+	data.lastPreview = {
+		id: "fixture-preview",
+		kind: "countdown",
+		success: true,
+		title: "Final exam",
+		details: "",
+		course: "",
+		dueDate: "2027-05-04",
+		includesDueTime: false,
+		repeatsYearly: false,
+		categoryID: id,
+		categoryTitle: "School",
+	};
+	raw = JSON.stringify(data);
+	hub.refresh();
+	assert.deepEqual(
+		hub.countdownCategories.map((item) => item.title),
+		["School"],
+	);
+	assert.equal(hub.snapshot.lastPreview.categoryID, id);
+	data.lastPreview.categoryID = null;
+	data.lastPreview.categoryTitle = null;
+	assert.equal(decodeHubSnapshot(data).lastPreview.categoryID, null);
+	data.countdownCategories.push({ id: id.toLowerCase(), title: "Duplicate" });
+	assert.throws(() => decodeHubSnapshot(data));
+	data.countdownCategories = [{ id, title: null }];
+	assert.throws(() => decodeHubSnapshot(data));
+});
+
+test("countdown saves freeze a selected category and allow an explicit uncategorized choice", async () => {
+	reset();
+	const hub = new StudentHub();
+	try {
+		for (const categoryID of ["A25FB612-F82E-4C8B-A6CC-A30801665380", "none"]) {
+			const saved = hub.mutate("create-countdown", null, {
+				text: "/countdown Final exam Friday #School",
+				categoryID,
+				dueDate: "2027-05-04T00:00:00+08:00",
+			});
+			await Promise.resolve();
+			const request = new URL(requests.at(-1));
+			assert.equal(request.searchParams.get("categoryID"), categoryID);
+			assert.equal(
+				request.searchParams.get("dueDate"),
+				"2027-05-04T00:00:00+08:00",
+			);
+			const data = fixture();
+			data.lastRequest = { id: hub.pendingID, success: true };
+			raw = JSON.stringify(data);
+			hub.refresh();
+			assert.equal(await saved, true);
+		}
+	} finally {
+		hub.stop();
+	}
+});
+
 test("mutation succeeds only after a matching acknowledgment, independent of UUID case", async () => {
 	reset();
 	const hub = new StudentHub();

@@ -47,12 +47,23 @@ URL actions via `handlesExternalEvents` on `AppShellView`.
 Checkboxes complete/reopen tasks. Delete requires a second click.
 Type `/` to browse Student Hub's complete shared command catalog. `/todo`,
 `/capture`, and `/countdown` open inline drafts with explicit confirmation.
+Enter on a partial command fills its name into Sol. Argument-taking commands
+stay in the search field until their text is supplied; suggestions never launch
+Student Hub by themselves.
 Specialized commands and natural-language actions open Student Hub's native
 Quick Command preview with their original text, fields, and confirmation behavior.
 Todo and countdown drafts use Student Hub's own natural-language parser; their
 confirmed dates and course IDs are preserved when saved. `/capture` adds to
 Student Hub's Scratchpad, matching its native command. Archived and past one-off
 countdowns are hidden in Sol; their Student Hub records remain intact.
+
+Countdown drafts in both apps detect categories from Student Hub's current
+category list, including custom names and English/Chinese event keywords.
+Use `#School`, `category:School`, or `分类:School` to name a category explicitly;
+quote names containing spaces. Auto follows detection; a manual category or
+No category overrides it and stays selected while editing. Removed categories
+block confirmation until a valid choice is made. Sol saves the previewed
+category UUID, and older snapshots without category support remain compatible.
 
 Student Hub exports an owner-only snapshot at
 `~/Library/Application Support/StudentHub/Integrations/sol.json`. It performs
@@ -73,9 +84,9 @@ connection explicitly requested for this fork.
 
 ## Verification status (2026-11-11)
 
-Installed signed build 1007. TypeScript, 47 Bun tests, 4 terminal CLI tests,
+Installed signed build 1008. TypeScript, 50 Bun tests, 4 terminal CLI tests,
 native dictionary/shortcut/application-quit/file-search harnesses and Release
-build/signature checks passed. Student Hub's 49 targeted tests and disposable
+build/signature checks passed. Student Hub's 55 targeted tests and disposable
 live create/cleanup checks passed, preserving previewed dates and courses; all
 existing workspace records were unchanged. The 25 imported countdowns include 5 archived
 items; five truncated screenshot titles are stored as shown with notes.
@@ -84,12 +95,17 @@ The window fix replayed 20 actual launcher-open callbacks with no Student Hub
 launch requests. Both installed application signatures passed strict checks.
 
 Dashboard spacing and the natural-language todo draft were checked on screen.
+Enter completion and repeated Enter on an empty countdown command were checked
+in the installed Applications copy.
+Countdown category detection and selection were checked on screen in both
+installed apps, including Sol's Auto, manual category, and No category states.
+Student Hub's category build preserved both current Release workspace JSON files
+byte-for-byte. UI checks used canceled drafts and did not create records.
 The live catalog exports 20 canonical commands and 22 names including aliases.
 Specialized commands share Student Hub's existing Quick Command UI; their logic
-is not duplicated in Sol. The UI automation service still caches the old upstream
-bundle ID for `/Applications/Sol.app`; dashboard and draft screenshots were
-checked through the identical signed build product. Individual native command
-popups were not exhaustively checked on screen.
+is not duplicated in Sol. The current UI checks resolved `/Applications/Sol.app`
+directly; no build-cache copy was launched. Individual specialized command popups
+were not exhaustively checked on screen.
 
 Signed fork updates are published at
 https://github.com/BenjaminD2023/sol/releases/latest. The public latest feed and downloaded
