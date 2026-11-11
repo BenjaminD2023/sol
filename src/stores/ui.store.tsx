@@ -1072,7 +1072,9 @@ export const createUIStore = (root: IRootStore) => {
 			}
 
 			if (store.focusedWidget === Widget.SEARCH && !studentHub.editing) store.setQuery("");
-			void studentHub.requestRefresh();
+			// Opening the launcher only reads Hub's continuously updated snapshot.
+			// A URL refresh here makes SwiftUI create a new Hub window on each open.
+			studentHub.refresh();
 
 			setImmediate(() => {
 				if (!store.isAccessibilityTrusted) {

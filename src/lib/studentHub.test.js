@@ -81,7 +81,7 @@ test("snapshot validation preserves text and optional deadlines while rejecting 
 	assert.throws(() => decodeHubSnapshot(remote));
 });
 
-test("same snapshot reconnects after its file disappears", () => {
+test("local refresh reconnects after its file disappears without opening Student Hub", () => {
 	reset();
 	const hub = new StudentHub();
 	hub.refresh();
@@ -92,6 +92,7 @@ test("same snapshot reconnects after its file disappears", () => {
 	exists = true;
 	hub.refresh();
 	assert.equal(hub.tasks.length, 1);
+	assert.equal(requests.length, 0);
 });
 
 test("mutation succeeds only after a matching acknowledgment, independent of UUID case", async () => {

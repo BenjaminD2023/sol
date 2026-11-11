@@ -36,6 +36,8 @@ Permissions may require a new grant if the signing identity changes or expires.
 
 Cmd-Space opens the task dashboard. Click a task or Edit to rename it, change
 its details or reschedule it using natural dates.
+Opening Sol reads the existing local snapshot without launching or sending
+refresh URLs to Student Hub. Student Hub continuously updates that snapshot.
 Checkboxes complete/reopen tasks. Delete requires a second click.
 Type `/` to browse Student Hub's complete shared command catalog. `/todo`,
 `/capture`, and `/countdown` open inline drafts with explicit confirmation.
@@ -65,7 +67,7 @@ connection explicitly requested for this fork.
 
 ## Verification status (2026-11-11)
 
-Installed signed build 1006. TypeScript, 47 Bun tests, 4 terminal CLI tests,
+Installed signed build 1007. TypeScript, 47 Bun tests, 4 terminal CLI tests,
 native dictionary/shortcut/application-quit/file-search harnesses and Release
 build/signature checks passed. Student Hub's 49 targeted tests and disposable
 live create/cleanup checks passed, preserving previewed dates and courses; all
@@ -80,9 +82,8 @@ bundle ID for `/Applications/Sol.app`; dashboard and draft screenshots were
 checked through the identical signed build product. Individual native command
 popups were not exhaustively checked on screen.
 
-Signed build 1006 is published at
-https://github.com/BenjaminD2023/sol/releases/tag/benjamin-1006 from source
-`54c6babf8ef81a539f52bab3a6c2f7f787c826d3`. The public latest feed and downloaded
+Signed fork updates are published at
+https://github.com/BenjaminD2023/sol/releases/latest. The public latest feed and downloaded
 archive passed Ed25519 signature, byte-count, metadata, SHA256, and extracted
 application signature verification. Future updates use the same Keychain key;
 run `scripts/local/publish-update.sh --prepare` for a local signing/verification
