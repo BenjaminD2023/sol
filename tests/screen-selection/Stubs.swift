@@ -38,6 +38,7 @@ final class Panel {
   var contentView: NSView? = NSView()
   init(contentRect: CGRect) { frame = contentRect; Self.instance = self }
   func setFrameOrigin(_ point: CGPoint) { frame.origin = point }
+  func setContentSize(_ size: CGSize) { frame.size = size }
   func setIsVisible(_ visible: Bool) { isVisible = visible; if !visible { isKeyWindow = false } }
   func makeKeyAndOrderFront(_ sender: Any?) { isKeyWindow = true }
   func setFrame(_ rect: CGRect, display: Bool) { frame = rect }
@@ -51,6 +52,6 @@ final class HotKeyManager {
 }
 final class SolEmitter {
   static let sharedInstance = SolEmitter()
-  func onShow(target: String?) {}
+  func onShow(target: String?, query: String? = nil) {}
   func onHide() {}
 }

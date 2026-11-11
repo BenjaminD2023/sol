@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Local Sol launcher and Student Hub quick-command terminal entry point."""
+"""Local Sol launcher and Spotlight command terminal entry point."""
 import json
 from pathlib import Path
 import subprocess
 import sys
 import unicodedata
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 
 def safe_text(value):
@@ -18,7 +18,7 @@ def main(args):
         return
     if args == ["--help"] or args == ["-h"]:
         print('Usage: sol ["Math Homework from Class tmr 10AM" | --tasks | --help]')
-        print("No arguments opens Sol. A command opens Student Hub's local preview for confirmation.")
+        print("No arguments opens Sol. A command opens Sol's Spotlight draft for confirmation.")
         return
     if args == ["--tasks"]:
         path = Path.home() / "Library/Application Support/StudentHub/Integrations/sol.json"
@@ -42,11 +42,11 @@ def main(args):
     if args[0].startswith("--"):
         raise SystemExit("Unknown option. Run sol --help.")
     text = " ".join(args)
-    if not text.strip() or len(text) > 10000:
+    if not text.strip() or "\0" in text or len(text.encode("utf-16-le")) // 2 > 10000:
         raise SystemExit("Enter a task command up to 10,000 characters.")
     # Explicitly target the installed local app. No shell interpolation or network.
-    url = "studenthub://quick-command?" + urlencode({"text": text})
-    subprocess.run(["/usr/bin/open", "-a", "/Applications/StudentHub.app", url], check=True)
+    url = "sol-benjamin://command?" + urlencode({"text": text}, quote_via=quote)
+    subprocess.run(["/usr/bin/open", "-a", "/Applications/Sol.app", url], check=True)
 
 
 if __name__ == "__main__":

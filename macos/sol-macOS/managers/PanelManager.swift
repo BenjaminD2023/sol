@@ -23,10 +23,21 @@ enum PreferredScreen {
   }
 
   @objc func showWindow(target: String? = nil) {
+    if presentWindow() { SolEmitter.sharedInstance.onShow(target: target) }
+  }
+
+  func showCommand(_ query: String) {
+    guard presentWindow() else { return }
+    NSApp.activate(ignoringOtherApps: true)
+    mainWindow.makeKeyAndOrderFront(self)
+    SolEmitter.sharedInstance.onShow(target: "SEARCH", query: query)
+  }
+
+  private func presentWindow() -> Bool {
     HotKeyManager.shared.settingsHotKey.isPaused = false
 
     guard let screen = getPreferredScreen() else {
-      return
+      return false
     }
 
     let yOffset = screen.visibleFrame.height * 0.3
@@ -38,7 +49,7 @@ enum PreferredScreen {
 
     mainWindow.makeKeyAndOrderFront(self)
 
-    SolEmitter.sharedInstance.onShow(target: nil)
+    return true
   }
 
   @objc func hideWindow() {

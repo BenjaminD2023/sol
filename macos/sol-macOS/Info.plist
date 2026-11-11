@@ -4,6 +4,15 @@
 <dict>
 	<key>ATSApplicationFontsPath</key>
 	<string>JetBrainsMono.ttf</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.benjamind2023.sol.command</string>
+			<key>CFBundleURLSchemes</key>
+			<array><string>sol-benjamin</string></array>
+		</dict>
+	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

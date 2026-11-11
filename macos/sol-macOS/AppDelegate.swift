@@ -8,6 +8,8 @@ import Sparkle
 class AppDelegate: RCTAppDelegate {
   private var updaterController: SPUStandardUpdaterController!
   private var mediaKeyForwarder: MediaKeyForwarder!
+  private var commandRootReady = false
+  private var pendingCommandText: String?
   private let imagesPasteboardDirectory: URL = {
     let home = FileManager.default.homeDirectoryForCurrentUser
     return home
@@ -47,6 +49,15 @@ class AppDelegate: RCTAppDelegate {
     return true
   }
 
+  func application(_ application: NSApplication, open urls: [URL]) {
+    guard let command = urls.compactMap({ SolCommandURL.text(from: $0) }).last else { return }
+    if commandRootReady {
+      PanelManager.shared.showCommand(command)
+    } else {
+      pendingCommandText = command
+    }
+  }
+
   override func sourceURL(for bridge: RCTBridge) -> URL? {
     self.bundleURL()
   }
@@ -80,7 +91,13 @@ class AppDelegate: RCTAppDelegate {
 
     mediaKeyForwarder = MediaKeyForwarder()
 
-    PanelManager.shared.showWindow()
+    commandRootReady = true
+    if let command = pendingCommandText {
+      pendingCommandText = nil
+      PanelManager.shared.showCommand(command)
+    } else {
+      PanelManager.shared.showWindow()
+    }
   }
 
   func checkForUpdates() {
