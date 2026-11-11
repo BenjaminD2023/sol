@@ -4,15 +4,6 @@
 <dict>
 	<key>ATSApplicationFontsPath</key>
 	<string>JetBrainsMono.ttf</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>com.benjamind2023.sol.command</string>
-			<key>CFBundleURLSchemes</key>
-			<array><string>sol-benjamin</string></array>
-		</dict>
-	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -29,8 +20,19 @@
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
 	<string>2.1.365</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.benjamind2023.sol.command</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>sol-benjamin</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
-	<string>1002</string>
+	<string>1006</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
 	<key>LSMinimumSystemVersion</key>

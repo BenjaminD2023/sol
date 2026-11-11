@@ -149,6 +149,78 @@ test("rejected and unconfirmed mutations fail without pretending the draft was s
 	}
 });
 
+test("preview requests are correlated, superseded safely, and never save a task", async () => {
+	reset();
+	const hub = new StudentHub(100);
+	try {
+		const first = hub.previewCommand("/todo Old homework tomorrow");
+		await Promise.resolve();
+		const oldID = hub.previewID;
+		const second = hub.previewCommand("/countdown Exam Friday");
+		assert.equal(await first, null);
+		const latestID = hub.previewID;
+		const data = fixture();
+		data.lastPreview = {
+			id: oldID,
+			success: false,
+			kind: "todo",
+			error: "Old response",
+		};
+		raw = JSON.stringify(data);
+		hub.refresh();
+		assert.equal(hub.previewID, latestID);
+		data.lastPreview = {
+			id: latestID.toUpperCase(),
+			success: true,
+			kind: "countdown",
+			title: "Exam",
+			details: "",
+			course: "",
+			dueDate: "2026-11-13",
+			includesDueTime: false,
+			repeatsYearly: false,
+		};
+		raw = JSON.stringify(data);
+		hub.refresh();
+		assert.equal((await second).title, "Exam");
+		assert.equal(hub.previewID, "");
+		assert.equal(hub.pendingID, "");
+		assert.ok(
+			requests.every((url) => url.startsWith("studenthub://sol-parse?")),
+		);
+		assert.equal(hub.tasks.length, 1);
+	} finally {
+		hub.stop();
+	}
+});
+
+test("draft cancellation does not mutate tasks and preview responses validate dates", async () => {
+	reset();
+	const hub = new StudentHub();
+	hub.openDraft("todo", "Math tomorrow");
+	assert.equal(hub.editing, true);
+	const preview = hub.previewCommand("/todo Math tomorrow");
+	hub.closeDraft();
+	assert.equal(await preview, null);
+	assert.equal(hub.editing, false);
+	assert.equal(hub.commandDraft, null);
+	assert.equal(requests.length, 1);
+	const data = fixture();
+	data.lastPreview = {
+		id: "test",
+		success: true,
+		kind: "todo",
+		title: "Test",
+		details: "",
+		course: "",
+		dueDate: "bad-date",
+		includesDueTime: false,
+		repeatsYearly: false,
+	};
+	assert.throws(() => decodeHubSnapshot(data));
+	hub.stop();
+});
+
 test("day formatting uses calendar dates, date-only values, and yearly rollovers", () => {
 	const today = new Date(2026, 10, 11, 12);
 	assert.equal(
@@ -181,6 +253,39 @@ test("day formatting uses calendar dates, date-only values, and yearly rollovers
 		),
 		364,
 	);
+	const hub = new StudentHub();
+	hub.now = today.getTime();
+	const event = fixture().countdowns[0];
+	hub.snapshot = {
+		...fixture(),
+		countdowns: [
+			{
+				...event,
+				id: "upcoming",
+				repeatsYearly: false,
+				nextOccurrence: "2026-11-12",
+			},
+			{
+				...event,
+				id: "today",
+				repeatsYearly: false,
+				nextOccurrence: "2026-11-11",
+			},
+			{
+				...event,
+				id: "past-event",
+				repeatsYearly: false,
+				nextOccurrence: "2026-11-10",
+			},
+			{ ...event, id: "annual-birthday", nextOccurrence: "2026-11-10" },
+			{ ...event, id: "archived-future", isArchived: true },
+		],
+	};
+	assert.deepEqual(
+		hub.countdowns.map((item) => item.id),
+		["upcoming", "today", "annual-birthday"],
+	);
+	assert.equal(hub.snapshot.countdowns.length, 5);
 	assert.match(
 		hubURL("quick-command", { text: "C++ A&B=1+2" }),
 		/C%2B%2B%20A%26B%3D1%2B2/,

@@ -1,4 +1,5 @@
 import { studentHub } from "lib/studentHub";
+import { parseQuickCommand } from "lib/quickCommands";
 import { extractMeetingLink } from "lib/calendar";
 import { solNative } from "lib/SolNative";
 import { makeAutoObservable } from "mobx";
@@ -46,7 +47,10 @@ export const createKeystrokeStore = (root: IRootStore) => {
 			meta: boolean;
 			shift: boolean;
 		}) => {
-			if (studentHub.editing) return;
+			if (studentHub.editing) {
+				if (keyCode === 53 && studentHub.commandDraft && !studentHub.pendingID) studentHub.closeDraft();
+				return;
+			}
 			switch (keyCode) {
 				// Cmd+Q quits the selected running app; native code consumes the key
 				// before AppKit can use it to terminate the launcher.
@@ -286,12 +290,16 @@ export const createKeystrokeStore = (root: IRootStore) => {
 							}
 
 							if (shift) {
-								void studentHub.capture(root.ui.query);
+								const command = parseQuickCommand(root.ui.query);
+								if (command) studentHub.openDraft(command.kind, command.text);
+								else void studentHub.capture(root.ui.query);
 								return;
 							}
 
 							if (!root.ui.searchItems.length || meta) {
-								void studentHub.capture(root.ui.query);
+								const command = parseQuickCommand(root.ui.query);
+								if (command) studentHub.openDraft(command.kind, command.text);
+								else void studentHub.capture(root.ui.query);
 								return;
 							}
 

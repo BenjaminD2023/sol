@@ -49,7 +49,7 @@ class AppDelegate: RCTAppDelegate {
     return true
   }
 
-  func application(_ application: NSApplication, open urls: [URL]) {
+  override func application(_ application: NSApplication, open urls: [URL]) {
     guard let command = urls.compactMap({ SolCommandURL.text(from: $0) }).last else { return }
     if commandRootReady {
       PanelManager.shared.showCommand(command)

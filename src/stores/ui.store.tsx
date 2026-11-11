@@ -1,4 +1,5 @@
 import { studentHub } from "lib/studentHub";
+import { findHubCommand, matchingHubCommands, parseQuickCommand, quickCommandLabels, suggestedQuickCommands } from "lib/quickCommands";
 import * as Sentry from "@sentry/react-native";
 import { Assets } from "assets";
 import { Parser } from "expr-eval";
@@ -523,7 +524,7 @@ export const createUIStore = (root: IRootStore) => {
 				!query.trim() ||
 				!store.isVisible ||
 				(widget !== Widget.FILE_SEARCH && widget !== Widget.SEARCH) ||
-				(widget === Widget.SEARCH && query.trim().length < 2)
+				(widget === Widget.SEARCH && (query.trim().length < 2 || query.trim().startsWith("/")))
 			)
 				return;
 			const requestID = ++fileSearchRequestID;
@@ -574,6 +575,32 @@ export const createUIStore = (root: IRootStore) => {
 			if (!store.query) {
 				return [...allItems].sort(compareRankedItems);
 			}
+			const command = parseQuickCommand(store.query);
+			if (command) return [{
+				id: `quick-command-${command.kind}`, type: ItemType.CONFIGURATION,
+				name: `${quickCommandLabels[command.kind]}${command.text ? `: ${command.text}` : "…"}`,
+				icon: command.kind === "todo" ? "☑" : command.kind === "capture" ? "✎" : "◷",
+				preventClose: true, callback: () => studentHub.openDraft(command.kind, command.text),
+			}];
+			if (store.query.trim().startsWith("/") && studentHub.commands.length) {
+				const exact = findHubCommand(store.query, studentHub.commands);
+				if (exact && (!exact.takesArgument || /\s/.test(store.query.trim()))) return [{
+					id: `hub-command-${exact.id}`, type: ItemType.CONFIGURATION,
+					name: store.query.trim(), subName: exact.detail, icon: "⌘", preventClose: true,
+					callback: () => { void studentHub.capture(store.query); },
+				}];
+				return matchingHubCommands(store.query, studentHub.commands).map((item) => ({
+					id: `hub-command-${item.id}`, type: ItemType.CONFIGURATION,
+					name: item.usage, subName: item.detail, icon: "⌘", preventClose: true,
+					callback: () => { void studentHub.capture(item.insertionText); },
+				}));
+			}
+			const commandSuggestions = suggestedQuickCommands(store.query);
+			if (commandSuggestions.length) return commandSuggestions.map((kind) => ({
+				id: `quick-command-${kind}`, type: ItemType.CONFIGURATION,
+				name: `/${kind} — ${quickCommandLabels[kind]}`, icon: "⌘", preventClose: true,
+				callback: () => studentHub.openDraft(kind),
+			}));
 
 			if (minisearch.documentCount === 0) {
 				minisearch.addAll(allItems);
@@ -605,8 +632,9 @@ export const createUIStore = (root: IRootStore) => {
 			const captureQuery = store.query;
 			const createTaskItems: Item[] = !store.temporaryResult && !/^define\s/i.test(captureQuery) && /\s/.test(captureQuery.trim()) ? [{
 				id: "studenthub-create", type: ItemType.CONFIGURATION,
-				name: `Create task: ${captureQuery}`, icon: "☑",
-				callback: () => { void studentHub.mutate("create", null, { text: captureQuery }); },
+				name: `Review in Student Hub: ${captureQuery}`, icon: "☑",
+				preventClose: true,
+				callback: () => { void studentHub.capture(captureQuery); },
 			}] : [];
 			const taskIntent = /\b(task|todo|homework|assignment|tmr|tomorrow|today|due)\b/i.test(captureQuery);
 			const exactApps = results.filter(item => item.type === ItemType.APPLICATION && [item.name, item.localizedName].some(name => name?.toLowerCase() === captureQuery.toLowerCase()));
@@ -773,6 +801,7 @@ export const createUIStore = (root: IRootStore) => {
 			}
 
 			if (store.focusedWidget === Widget.SEARCH) {
+				if (store.query.trim().startsWith("/")) return;
 				const dictionaryTerm = parseDictionaryQuery(store.query);
 				if (dictionaryTerm != null) {
 					store.temporaryResult = {
@@ -1010,9 +1039,17 @@ export const createUIStore = (root: IRootStore) => {
 				store.updateApps(apps);
 			});
 		},
-		onShow: ({ target }: { target?: string }) => {
+		onShow: ({ target, query }: { target?: string; query?: string }) => {
 			store.getApps();
 			store.isVisible = true;
+			if (query != null && query.trim() && query.length <= 10000) {
+				store.focusWidget(Widget.SEARCH);
+				store.setQuery(query);
+				const command = parseQuickCommand(query);
+				if (command) studentHub.openDraft(command.kind, command.text);
+				else void studentHub.capture(query);
+				return;
+			}
 			if (target != null) {
 				switch (target) {
 					case Widget.CLIPBOARD:

@@ -33,8 +33,14 @@ Permissions may require a new grant if the signing identity changes or expires.
 Cmd-Space opens the task dashboard. Click a task or Edit to rename it, change
 its details or reschedule it using natural dates.
 Checkboxes complete/reopen tasks. Delete requires a second click.
-Type a task above and select “Create task” to confirm creation, or use
-“Review task in Hub” for Student Hub's full draft preview.
+Type `/` to browse Student Hub's complete shared command catalog. `/todo`,
+`/capture`, and `/countdown` open inline drafts with explicit confirmation.
+Specialized commands and natural-language actions open Student Hub's native
+Quick Command preview with their original text, fields, and confirmation behavior.
+Todo and countdown drafts use Student Hub's own natural-language parser; their
+confirmed dates and course IDs are preserved when saved. `/capture` adds to
+Student Hub's Scratchpad, matching its native command. Archived and past one-off
+countdowns are hidden in Sol; their Student Hub records remain intact.
 
 Student Hub exports an owner-only snapshot at
 `~/Library/Application Support/StudentHub/Integrations/sol.json`. It performs
@@ -42,8 +48,10 @@ all workspace mutations through authenticated local URL requests and acknowledge
 saved changes. Sol never rewrites Student Hub's workspace database. Personal
 tasks, bridge tokens, countdown imports and workspace backups must never be committed.
 
-Terminal capture: `studenthub 'Math Homework from Class tmr 10AM'` opens a draft
-for confirmation. `sol 'Math Homework from Class tmr 10AM'` is an equivalent shim.
+Terminal capture: `studenthub 'Math Homework from Class tmr 10AM'` opens Student
+Hub's draft. `sol 'Math Homework from Class tmr 10AM'` opens the Sol draft.
+The Sol shim also accepts slash commands, such as
+`sol '/countdown Exam Friday'` or `sol '/capture Something to remember'`.
 
 Physical conversions and dictionary lookups stay offline. Explicit currency
 conversions contact Frankfurter with the currency pair only. Telemetry,
@@ -53,17 +61,17 @@ connection explicitly requested for this fork.
 
 ## Verification status (2026-11-11)
 
-Installed signed build 1002. TypeScript, 43 Bun tests, 3 terminal CLI tests,
+Installed signed build 1006. TypeScript, 47 Bun tests, 4 terminal CLI tests,
 native dictionary/shortcut/application-quit/file-search harnesses and Release
-build/signature checks passed. Student Hub's 28 targeted tests and disposable
-live create/edit/reschedule/complete/reopen/delete round trip passed; all 140
-original tasks were preserved. The 25 imported countdowns include 5 archived
+build/signature checks passed. Student Hub's 49 targeted tests and disposable
+live create/cleanup checks passed, preserving previewed dates and courses; all
+existing workspace records were unchanged. The 25 imported countdowns include 5 archived
 items; five truncated screenshot titles are stored as shown with notes.
 
-On-screen verification is pending because the Mac was locked. The first update
-archive is prepared at `~/Library/Caches/Sol-update-staging/1002/Sol-1002.zip`.
-Sparkle's signing tool waited for login Keychain access, so no update feed or
-GitHub Release has been published yet. After unlocking the Mac, complete the
-on-screen checks and run `scripts/local/publish-update.sh`; approve the signing
-tool's access to the newly generated `benjamin-sol` Sparkle key if macOS asks.
-The private key must remain in Keychain and must never be printed or committed.
+Dashboard spacing and the natural-language todo draft were checked on screen.
+The live catalog exports 20 canonical commands and 22 names including aliases.
+Specialized commands share Student Hub's existing Quick Command UI; their logic
+is not duplicated in Sol. Initial signed-feed publication is the remaining
+maintenance step. Run `scripts/local/publish-update.sh --prepare` to sign and
+verify locally before publication. The private key must remain in Keychain and
+must never be printed or committed.

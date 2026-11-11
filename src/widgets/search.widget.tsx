@@ -337,13 +337,9 @@ export const SearchWidget: FC = observer(() => {
 	}, [focused, selectedIndex, items]);
 
 	return (
-		<View
-			className={clsx({
-				"flex-1": !!store.ui.query,
-			})}
-		>
+		<View className="flex-1" style={{ minHeight: 0 }}>
 			<View className="flex-row items-center gap-2 px-3">
-				<MainInput className="flex-1" hideIcon editable={!studentHub.editing} placeholder="Search apps, files, conversions, or capture a task…" />
+				<MainInput className="flex-1" hideIcon editable={!studentHub.editing} placeholder="Search apps, files, or type / for Student Hub commands…" />
 				<TouchableOpacity accessibilityRole="button" accessibilityLabel="Settings" disabled={studentHub.editing} onPress={store.ui.showSettings} className="p-2"><Text className="text-lg darker-text">⚙</Text></TouchableOpacity>
 			</View>
 
@@ -390,7 +386,7 @@ export const SearchWidget: FC = observer(() => {
 							</>
 						)}
 						<TouchableOpacity onPress={() => { void studentHub.capture(store.ui.query); }}>
-							<Text className="text-xs text-accent">Review task in Hub</Text>
+							<Text className="text-xs text-accent">Review in Student Hub</Text>
 						</TouchableOpacity>
 						{store.ui.currentItem?.type === ItemType.FILE && <><Text className="text-xs darker-text ml-2">Reveal in Finder</Text><Key symbol="⇧" /><Key symbol="⏎" /></>}
 						{!!items.length && (

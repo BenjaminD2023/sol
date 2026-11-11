@@ -169,9 +169,10 @@ export const StudentHubDashboard = observer(() => {
 		.filter((t) => (filter === "completed" ? t.isCompleted : !t.isCompleted))
 		.sort((a, b) => (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999"));
 	return (
-		<View className="flex-1" style={{ minHeight: 370 }}>
+		<View className="flex-1" style={{ minHeight: 0 }}>
 			<View className="flex-row items-center px-4 py-3 gap-2 border-t border-color">
 				<Text className="flex-1 text-lg font-semibold text">Student Hub</Text>
+				<Button title="Add todo" onPress={() => studentHub.openDraft("todo")} />
 				<Button
 					title={filter === "active" ? "Show completed" : "Show active"}
 					onPress={() =>

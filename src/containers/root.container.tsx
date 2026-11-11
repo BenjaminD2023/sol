@@ -1,5 +1,4 @@
 import clsx from 'clsx'
-import {FullCalendar} from 'components/FullCalendar'
 import {PermissionsBar} from 'components/PermissionsBar'
 import {observer} from 'mobx-react-lite'
 import {Text, TouchableOpacity, View} from 'react-native'
@@ -15,6 +14,8 @@ import {ScratchpadWidget} from 'widgets/scratchpad.widget'
 import {SearchWidget} from 'widgets/search.widget'
 import {SettingsWidget} from 'widgets/settings.widget'
 import {TranslationWidget} from 'widgets/translation.widget'
+import {QuickCaptureWidget} from 'widgets/quickCapture.widget'
+import {studentHub} from 'lib/studentHub'
 
 export const RootContainer = observer(() => {
   const store = useStore()
@@ -26,10 +27,9 @@ export const RootContainer = observer(() => {
         fullWindow: true,
       })}>
       <SearchWidget />
-
-
-
-      <PermissionsBar />
+      <View style={{ flexShrink: 0 }}>
+        <PermissionsBar />
+      </View>
     </View>
   )
 
@@ -102,6 +102,10 @@ export const RootContainer = observer(() => {
         <ProcessesWidget />
       </View>
     )
+  }
+
+  if (studentHub.commandDraft) {
+    subWindow = <QuickCaptureWidget key={`${studentHub.commandDraft.kind}:${studentHub.commandDraft.text}`} draft={studentHub.commandDraft} />
   }
 
   return (

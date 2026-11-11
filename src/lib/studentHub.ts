@@ -2,6 +2,11 @@ import { makeAutoObservable, runInAction } from "mobx";
 import { Linking } from "react-native";
 import { v4 as uuid } from "uuid";
 import { solNative } from "./SolNative";
+import type {
+	HubCommand,
+	QuickCommandDraft,
+	QuickCommandKind,
+} from "./quickCommands";
 
 export type HubTask = {
 	id: string;
@@ -23,6 +28,19 @@ export type HubCountdown = {
 	repeatsYearly: boolean;
 	url: string;
 };
+export type HubCommandPreview = {
+	id: string;
+	success: boolean;
+	kind: "todo" | "countdown";
+	title?: string;
+	details?: string;
+	course?: string;
+	courseID?: string;
+	dueDate?: string;
+	includesDueTime?: boolean;
+	repeatsYearly?: boolean;
+	error?: string;
+};
 export type HubSnapshot = {
 	schemaVersion: number;
 	generatedAt: string;
@@ -30,6 +48,8 @@ export type HubSnapshot = {
 	tasks: HubTask[];
 	countdowns: HubCountdown[];
 	lastRequest?: { id: string; success: boolean; error?: string };
+	lastPreview?: HubCommandPreview;
+	commands?: HubCommand[];
 };
 export function hubURL(route: string, values: Record<string, string>): string {
 	return `studenthub://${route}?${Object.entries(values)
@@ -170,6 +190,51 @@ export function decodeHubSnapshot(input: unknown): HubSnapshot {
 				typeof input.lastRequest.error !== "string"))
 	)
 		throw new Error("Invalid Student Hub response");
+	if (
+		input.commands != null &&
+		(!Array.isArray(input.commands) ||
+			input.commands.some(
+				(command) =>
+					!record(command) ||
+					![
+						command.id,
+						command.command,
+						command.usage,
+						command.detail,
+						command.insertionText,
+					].every((value) => typeof value === "string") ||
+					typeof command.takesArgument !== "boolean" ||
+					!/^\/[a-z]+$/i.test(command.command as string) ||
+					(command.aliases != null &&
+						(!Array.isArray(command.aliases) ||
+							command.aliases.some(
+								(value) =>
+									typeof value !== "string" || !/^\/[a-z]+$/i.test(value),
+							))),
+			))
+	) {
+		throw new Error("Invalid Student Hub commands");
+	}
+	if (input.lastPreview != null) {
+		const preview = input.lastPreview;
+		if (
+			!record(preview) ||
+			typeof preview.id !== "string" ||
+			typeof preview.success !== "boolean" ||
+			!["todo", "countdown"].includes(preview.kind as string) ||
+			(preview.error != null && typeof preview.error !== "string") ||
+			(preview.courseID != null && typeof preview.courseID !== "string") ||
+			(preview.success &&
+				(typeof preview.title !== "string" ||
+					typeof preview.details !== "string" ||
+					typeof preview.course !== "string" ||
+					typeof preview.dueDate !== "string" ||
+					!parseHubDate(preview.dueDate) ||
+					typeof preview.includesDueTime !== "boolean" ||
+					typeof preview.repeatsYearly !== "boolean"))
+		)
+			throw new Error("Invalid Student Hub preview");
+	}
 	return input as HubSnapshot;
 }
 
@@ -178,20 +243,34 @@ export class StudentHub {
 	error = "";
 	pendingID = "";
 	editing = false;
+	commandDraft: QuickCommandDraft | null = null;
+	previewID = "";
 	now = Date.now();
 	private lastJSON = "";
 	private snapshotReadError = false;
 	private timer: ReturnType<typeof setInterval> | undefined;
 	private timeout: ReturnType<typeof setTimeout> | undefined;
 	private pendingResolve: ((success: boolean) => void) | undefined;
-	constructor(private requestTimeoutMs = 15000) {
+	private previewResolve:
+		| ((preview: HubCommandPreview | null) => void)
+		| undefined;
+	private previewTimeout: ReturnType<typeof setTimeout> | undefined;
+	constructor(private requestTimeoutMs = 30000) {
 		makeAutoObservable(this, {}, { autoBind: true });
 	}
 	get tasks() {
 		return this.snapshot?.tasks ?? [];
 	}
+	get commands() {
+		return this.snapshot?.commands ?? [];
+	}
 	get countdowns() {
-		return this.snapshot?.countdowns.filter((item) => !item.isArchived) ?? [];
+		const today = new Date(this.now);
+		return (
+			this.snapshot?.countdowns.filter(
+				(item) => !item.isArchived && countdownDays(item, today) >= 0,
+			) ?? []
+		);
 	}
 	get snapshotAgeMinutes() {
 		return this.snapshot
@@ -211,6 +290,26 @@ export class StudentHub {
 		this.timeout = undefined;
 		this.error = error;
 		resolve?.(success);
+	}
+	private finishPreview(preview: HubCommandPreview | null) {
+		const resolve = this.previewResolve;
+		this.previewResolve = undefined;
+		this.previewID = "";
+		if (this.previewTimeout != null) clearTimeout(this.previewTimeout);
+		this.previewTimeout = undefined;
+		resolve?.(preview);
+	}
+	openDraft(kind: QuickCommandKind, text = "") {
+		if (this.pendingID) return;
+		this.commandDraft = { kind, text };
+		this.editing = true;
+		this.error = "";
+	}
+	closeDraft() {
+		if (this.pendingID) return;
+		this.finishPreview(null);
+		this.commandDraft = null;
+		this.editing = false;
 	}
 	refresh() {
 		this.now = Math.floor(Date.now() / 60000) * 60000;
@@ -234,6 +333,13 @@ export class StudentHub {
 			if (this.snapshotReadError) {
 				this.error = "";
 				this.snapshotReadError = false;
+			}
+			const preview = this.snapshot?.lastPreview;
+			if (
+				this.previewID &&
+				preview?.id.toLowerCase() === this.previewID.toLowerCase()
+			) {
+				this.finishPreview(preview);
 			}
 			const response = this.snapshot?.lastRequest;
 			if (
@@ -275,6 +381,7 @@ export class StudentHub {
 	stop() {
 		if (this.timer != null) clearInterval(this.timer);
 		this.timer = undefined;
+		this.finishPreview(null);
 		if (this.pendingID)
 			this.finishRequest(
 				false,
@@ -295,7 +402,13 @@ export class StudentHub {
 		}
 	}
 	async mutate(
-		action: "create" | "update" | "complete" | "delete",
+		action:
+			| "create"
+			| "capture"
+			| "create-countdown"
+			| "update"
+			| "complete"
+			| "delete",
 		task: HubTask | null,
 		values: Record<string, string> = {},
 	): Promise<boolean> {
@@ -352,6 +465,39 @@ export class StudentHub {
 			});
 		}
 		return confirmation;
+	}
+	async previewCommand(text: string): Promise<HubCommandPreview | null> {
+		this.finishPreview(null);
+		this.refresh();
+		if (!this.snapshot?.bridgeToken || !text.trim() || text.length > 10000)
+			return null;
+		const requestID = uuid();
+		this.previewID = requestID;
+		const result = new Promise<HubCommandPreview | null>((resolve) => {
+			this.previewResolve = resolve;
+		});
+		this.previewTimeout = setTimeout(
+			() =>
+				runInAction(() => {
+					if (this.previewID === requestID) this.finishPreview(null);
+				}),
+			this.requestTimeoutMs,
+		);
+		try {
+			await solNative.openStudentHubURL(
+				hubURL("sol-parse", {
+					text,
+					requestID,
+					token: this.snapshot.bridgeToken,
+				}),
+			);
+			this.refresh();
+		} catch {
+			runInAction(() => {
+				if (this.previewID === requestID) this.finishPreview(null);
+			});
+		}
+		return result;
 	}
 }
 export const studentHub = new StudentHub();
