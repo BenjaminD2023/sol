@@ -6,6 +6,10 @@ with this device's Student Hub integration. Only the `codex/*` feature branches
 are intended for upstream pull requests. Never include the local branch or this
 file in an upstream PR.
 
+The pushed public branches are `codex/unit-conversions`,
+`codex/offline-dictionary`, `codex/configurable-shortcuts`,
+`codex/quit-running-apps`, and `codex/spotlight-file-search`.
+
 ## Build, install, update
 
 Run `scripts/local/build-install.sh --bump` to typecheck, test, build Release,
@@ -71,7 +75,15 @@ items; five truncated screenshot titles are stored as shown with notes.
 Dashboard spacing and the natural-language todo draft were checked on screen.
 The live catalog exports 20 canonical commands and 22 names including aliases.
 Specialized commands share Student Hub's existing Quick Command UI; their logic
-is not duplicated in Sol. Initial signed-feed publication is the remaining
-maintenance step. Run `scripts/local/publish-update.sh --prepare` to sign and
-verify locally before publication. The private key must remain in Keychain and
-must never be printed or committed.
+is not duplicated in Sol. The UI automation service still caches the old upstream
+bundle ID for `/Applications/Sol.app`; dashboard and draft screenshots were
+checked through the identical signed build product. Individual native command
+popups were not exhaustively checked on screen.
+
+Signed build 1006 is published at
+https://github.com/BenjaminD2023/sol/releases/tag/benjamin-1006 from source
+`54c6babf8ef81a539f52bab3a6c2f7f787c826d3`. The public latest feed and downloaded
+archive passed Ed25519 signature, byte-count, metadata, SHA256, and extracted
+application signature verification. Future updates use the same Keychain key;
+run `scripts/local/publish-update.sh --prepare` for a local signing/verification
+pass. The private key must remain in Keychain and must never be printed or committed.
